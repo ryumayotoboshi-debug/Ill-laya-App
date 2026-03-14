@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Il Water</title>
+
+<style>
+
+body{
+margin:0;
+background:linear-gradient(
+to bottom,
+#0e1624,
+#05080f
+);
+overflow:hidden;
+}
+
+canvas{
+display:block;
+}
+
+</style>
+</head>
+
+<body>
+
+<canvas id="water"></canvas>
+
+<script>
+
+const canvas = document.getElementById("water")
+const ctx = canvas.getContext("2d")
+
+canvas.width = window.innerWidth
+canvas.height = window.innerHeight
+
+let ripples = []
+
+function createRipple(x,y){
+
+ripples.push({
+x:x,
+y:y,
+radius:0,
+alpha:0.6
+})
+
+setTimeout(()=>{
+
+ripples.push({
+x:x + (Math.random()*20-10),
+y:y + (Math.random()*20-10),
+radius:0,
+alpha:0.3
+})
+
+},300+Math.random()*400)
+
+}
+
+canvas.addEventListener("touchstart",e=>{
+
+const t = e.touches[0]
+
+createRipple(t.clientX,t.clientY)
+
+})
+
+canvas.addEventListener("mousedown",e=>{
+
+createRipple(e.clientX,e.clientY)
+
+})
+
+function drawRipple(r){
+
+ctx.beginPath()
+
+ctx.arc(r.x,r.y,r.radius,0,Math.PI*2)
+
+ctx.lineWidth=2
+
+ctx.strokeStyle="rgba(180,210,255,"+r.alpha+")"
+
+ctx.stroke()
+
+}
+
+function animate(){
+
+ctx.clearRect(0,0,canvas.width,canvas.height)
+
+for(let i=ripples.length-1;i>=0;i--){
+
+let r=ripples[i]
+
+drawRipple(r)
+
+r.radius+=1.2
+r.alpha*=0.985
+
+if(r.alpha<0.01){
+
+ripples.splice(i,1)
+
+}
+
+}
+
+requestAnimationFrame(animate)
+
+}
+
+animate()
+
+</script>
+
+</body>
+</html>
