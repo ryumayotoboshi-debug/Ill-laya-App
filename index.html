@@ -78,14 +78,29 @@ setTimeout(ilRipple,30000)
 
 function drawRipple(r){
 
-/* ぼかし開始 */
 ctx.filter="blur(1px)"
 
+/* 複数の波紋を描く */
+
+for(let i=0;i<4;i++){
+
+let radius = r.r - i*12
+
+if(radius>0){
+
 ctx.beginPath()
-ctx.arc(r.x,r.y,r.r,0,Math.PI*2)
-ctx.strokeStyle="rgba(0,120,255,"+r.a+")"
-ctx.lineWidth=2
+ctx.arc(r.x,r.y,radius,0,Math.PI*2)
+
+let alpha = r.a * (1 - i*0.25)
+
+ctx.strokeStyle="rgba(0,120,255,"+alpha+")"
+ctx.lineWidth=1.6
+
 ctx.stroke()
+
+}
+
+}
 
 /* 光の歪みリング */
 
@@ -95,7 +110,6 @@ ctx.strokeStyle="rgba(120,180,255,"+(r.a*0.6)+")"
 ctx.lineWidth=4
 ctx.stroke()
 
-/* ぼかし解除 */
 ctx.filter="none"
 
 }
