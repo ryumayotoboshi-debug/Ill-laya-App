@@ -40,42 +40,44 @@ const isDarkMode = window.matchMedia("(prefers-color-scheme: dark)").matches;
 let ripples = [];
 let time = 0;
 
+// 波紋生成時に個体ごとの速度と減衰を設定
 function createRipple(x, y){
   ripples.push({
     x: x,
     y: y,
     r: 0,
-    a: 0.5
+    a: 0.5,
+    speed: 3 + Math.random()*2,       // 基本速度
+    decay: 0.988 + Math.random()*0.005 // 減衰率
   });
 }
 
+// タッチ・クリックで波紋生成
 canvas.addEventListener("touchstart", e=>{
   let t = e.touches[0];
   createRipple(t.clientX, t.clientY);
 });
-
 canvas.addEventListener("mousedown", e=>{
   createRipple(e.clientX, e.clientY);
 });
 
+// 自動的にランダムに波紋を発生させる
 function ilRipple(){
   let x = Math.random() * canvas.width;
   let y = Math.random() * canvas.height;
   createRipple(x, y);
-  let next = 40000 + Math.random() * 80000;
+  let next = 40000 + Math.random()*80000;
   setTimeout(ilRipple, next);
 }
-
 setTimeout(ilRipple, 30000);
 
+// 波紋描画
 function drawRipple(r){
-  // 波紋同士が重なった時に明るくなる
-  ctx.globalCompositeOperation = "lighter";
+  ctx.globalCompositeOperation = "lighter"; // 重なった波紋は明るく
 
   for(let i=0; i<5; i++){
     let delay = i*10;
     let radius = r.r - delay;
-
     if(radius > 0){
       ctx.beginPath();
       for(let a=0; a<Math.PI*2; a+=0.15){
@@ -92,10 +94,10 @@ function drawRipple(r){
 
       let alpha = r.a*(1 - i*0.2);
 
-      // ライトモードでは少し濃い青、ダークモードでは白
+      // ダークモードは白、ライトモードは濃い青
       ctx.strokeStyle = isDarkMode
         ? `rgba(255,255,255,${alpha*1.3})`
-        : `rgba(0,120,255,${alpha*1.6})`;  // 透明度を上げてライトでも見やすく
+        : `rgba(0,120,255,${alpha*1.6})`;
 
       ctx.lineWidth = 0.7;
       ctx.stroke();
@@ -105,6 +107,7 @@ function drawRipple(r){
   ctx.globalCompositeOperation = "source-over";
 }
 
+// アニメーション
 function animate(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
@@ -119,9 +122,9 @@ function animate(){
     let r = ripples[i];
     drawRipple(r);
 
-    // 波紋の広がる速度を変則的に（少し速め）
-    r.r += 4.5 + r.a*4 + Math.random()*0.5;
-    r.a *= 0.992 + Math.random()*0.002;
+    // 波紋の広がりと透明度を個体ごとの値で変則的に
+    r.r += r.speed + r.a*4;
+    r.a *= r.decay;
 
     if(r.a < 0.01){
       ripples.splice(i,1);
