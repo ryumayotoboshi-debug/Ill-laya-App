@@ -2,17 +2,23 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Ill/Laya touch</title>
+<title>Ill/Raya touch</title>
 
 <style>
+
 body{
 margin:0;
-background:linear-gradient(#0e1624,#05080f);
+
+/* 背景を白に変更 */
+background:#ffffff;
+
 overflow:hidden;
 }
+
 canvas{
 display:block;
 }
+
 </style>
 </head>
 
@@ -93,7 +99,7 @@ let i=x+y*w
 let value=previous[i]
 
 ctx.fillStyle=
-"rgba(180,210,255,"+(value/255)+")"
+"rgba(0,120,255,"+(value/255)+")"
 
 ctx.fillRect(
 x*canvas.width/w,
