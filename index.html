@@ -76,23 +76,42 @@ setTimeout(ilRipple,next)
 
 setTimeout(ilRipple,30000)
 
+
+
 function drawRipple(r){
 
-ctx.filter="blur(1px)"
+/* 全体ぼかし */
+ctx.filter="blur(2px)"
 
 /* 波紋 */
 
 for(let i=0;i<4;i++){
 
-let delay = i*14
-let radius = r.r - delay
+let delay=i*14
+let radius=r.r-delay
 
 if(radius>0){
 
 ctx.beginPath()
-ctx.arc(r.x,r.y,radius,0,Math.PI*2)
 
-let alpha = r.a * (1 - i*0.3)
+for(let a=0;a<Math.PI*2;a+=0.1){
+
+let distortion=Math.sin(a*6 + r.r*0.05)*0.6
+
+let x=r.x+Math.cos(a)*(radius+distortion)
+let y=r.y+Math.sin(a)*(radius+distortion)
+
+if(a===0){
+ctx.moveTo(x,y)
+}else{
+ctx.lineTo(x,y)
+}
+
+}
+
+ctx.closePath()
+
+let alpha=r.a*(1-i*0.3)
 
 ctx.strokeStyle="rgba(0,120,255,"+alpha+")"
 ctx.lineWidth=1.6
@@ -103,7 +122,7 @@ ctx.stroke()
 
 }
 
-/* 光の歪みリング（先頭の波だけ） */
+/* 光リング */
 
 ctx.beginPath()
 ctx.arc(r.x,r.y,r.r+3,0,Math.PI*2)
@@ -115,6 +134,8 @@ ctx.filter="none"
 
 }
 
+
+
 function drawFlash(f){
 
 ctx.beginPath()
@@ -123,6 +144,8 @@ ctx.fillStyle="rgba(120,180,255,"+f.a+")"
 ctx.fill()
 
 }
+
+
 
 function animate(){
 
@@ -139,8 +162,6 @@ for(let i=ripples.length-1;i>=0;i--){
 let r=ripples[i]
 
 drawRipple(r)
-
-/* 波紋速度アップ */
 
 r.r+=5.0
 r.a*=0.985
