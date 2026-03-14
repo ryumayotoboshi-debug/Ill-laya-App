@@ -80,23 +80,20 @@ setTimeout(ilRipple,30000)
 
 function drawRipple(r){
 
-/* 全体ぼかし */
-ctx.filter="blur(2px)"
+for(let i=0;i<6;i++){
 
-/* 波紋 */
-
-for(let i=0;i<4;i++){
-
-let delay=i*14
+let delay=i*10
 let radius=r.r-delay
 
 if(radius>0){
 
 ctx.beginPath()
 
-for(let a=0;a<Math.PI*2;a+=0.1){
+for(let a=0;a<Math.PI*2;a+=0.15){
 
-let distortion=Math.sin(a*6 + r.r*0.05)*0.6
+/* 歪みを弱くする */
+
+let distortion=Math.sin(a*3 + r.r*0.03)*0.25
 
 let x=r.x+Math.cos(a)*(radius+distortion)
 let y=r.y+Math.sin(a)*(radius+distortion)
@@ -111,26 +108,16 @@ ctx.lineTo(x,y)
 
 ctx.closePath()
 
-let alpha=r.a*(1-i*0.3)
+let alpha=r.a*(1-i*0.18)
 
 ctx.strokeStyle="rgba(0,120,255,"+alpha+")"
-ctx.lineWidth=1.6
+ctx.lineWidth=1.2
 
 ctx.stroke()
 
 }
 
 }
-
-/* 光リング */
-
-ctx.beginPath()
-ctx.arc(r.x,r.y,r.r+3,0,Math.PI*2)
-ctx.strokeStyle="rgba(120,180,255,"+(r.a*0.6)+")"
-ctx.lineWidth=4
-ctx.stroke()
-
-ctx.filter="none"
 
 }
 
@@ -151,6 +138,8 @@ function animate(){
 
 ctx.clearRect(0,0,canvas.width,canvas.height)
 
+/* 全体ぼかし */
+
 ctx.filter="blur(2px)"
 
 time+=0.02
@@ -165,8 +154,13 @@ let r=ripples[i]
 
 drawRipple(r)
 
-r.r+=5.0
-r.a*=0.985
+/* 波紋の広がり */
+
+r.r+=4.5
+
+/* 水っぽい減衰 */
+
+r.a*=0.992
 
 if(r.a<0.01){
 ripples.splice(i,1)
