@@ -44,13 +44,6 @@ r:0,
 a:0.5
 })
 
-flashes.push({
-x:x,
-y:y,
-r:2,
-a:1
-})
-
 }
 
 canvas.addEventListener("touchstart",e=>{
@@ -123,17 +116,6 @@ ctx.stroke()
 
 
 
-function drawFlash(f){
-
-ctx.beginPath()
-ctx.arc(f.x,f.y,f.r,0,Math.PI*2)
-ctx.fillStyle="rgba(120,180,255,"+f.a+")"
-ctx.fill()
-
-}
-
-
-
 function animate(){
 
 ctx.clearRect(0,0,canvas.width,canvas.height)
@@ -164,21 +146,6 @@ r.a*=0.992
 
 if(r.a<0.01){
 ripples.splice(i,1)
-}
-
-}
-
-for(let i=flashes.length-1;i>=0;i--){
-
-let f=flashes[i]
-
-drawFlash(f)
-
-f.r+=1
-f.a*=0.9
-
-if(f.a<0.05){
-flashes.splice(i,1)
 }
 
 }
