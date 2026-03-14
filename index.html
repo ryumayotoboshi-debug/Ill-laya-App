@@ -73,7 +73,7 @@ setTimeout(ilRipple,30000)
 
 function drawRipple(r){
 
-for(let i=0;i<6;i++){
+for(let i=0;i<5;i++){
 
 let delay=i*10
 let radius=r.r-delay
@@ -83,8 +83,6 @@ if(radius>0){
 ctx.beginPath()
 
 for(let a=0;a<Math.PI*2;a+=0.15){
-
-/* 歪みを弱くする */
 
 let distortion=Math.sin(a*3 + r.r*0.03)*0.25
 
@@ -101,10 +99,15 @@ ctx.lineTo(x,y)
 
 ctx.closePath()
 
-let alpha=r.a*(1-i*0.18)
+let alpha=r.a*(1-i*0.2)
 
-ctx.strokeStyle="rgba(0,120,255,"+alpha+")"
-ctx.lineWidth=1.2
+/* 色を少し淡く */
+
+ctx.strokeStyle="rgba(0,140,255,"+(alpha*0.6)+")"
+
+/* 線を細く */
+
+ctx.lineWidth=0.7
 
 ctx.stroke()
 
