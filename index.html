@@ -80,18 +80,19 @@ function drawRipple(r){
 
 ctx.filter="blur(1px)"
 
-/* 複数の波紋を描く */
+/* 波紋 */
 
 for(let i=0;i<4;i++){
 
-let radius = r.r - i*12
+let delay = i*14
+let radius = r.r - delay
 
 if(radius>0){
 
 ctx.beginPath()
 ctx.arc(r.x,r.y,radius,0,Math.PI*2)
 
-let alpha = r.a * (1 - i*0.25)
+let alpha = r.a * (1 - i*0.3)
 
 ctx.strokeStyle="rgba(0,120,255,"+alpha+")"
 ctx.lineWidth=1.6
@@ -102,7 +103,7 @@ ctx.stroke()
 
 }
 
-/* 光の歪みリング */
+/* 光の歪みリング（先頭の波だけ） */
 
 ctx.beginPath()
 ctx.arc(r.x,r.y,r.r+3,0,Math.PI*2)
