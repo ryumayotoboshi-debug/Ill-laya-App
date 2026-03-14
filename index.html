@@ -8,10 +8,7 @@
 
 body{
 margin:0;
-
-/* 背景を白に変更 */
 background:#ffffff;
-
 overflow:hidden;
 }
 
@@ -24,100 +21,132 @@ display:block;
 
 <body>
 
-<canvas id="c"></canvas>
+<canvas id="water"></canvas>
 
 <script>
 
-const canvas = document.getElementById("c")
+const canvas = document.getElementById("water")
 const ctx = canvas.getContext("2d")
 
 canvas.width = window.innerWidth
 canvas.height = window.innerHeight
 
-const w = 120
-const h = 200
+let ripples=[]
+let flashes=[]
 
-let current = []
-let previous = []
+let time=0
 
-for(let i=0;i<w*h;i++){
-current[i]=0
-previous[i]=0
-}
+function createRipple(x,y){
 
-function disturb(x,y){
+ripples.push({
+x:x,
+y:y,
+r:0,
+a:0.5
+})
 
-let ix = Math.floor(x/canvas.width*w)
-let iy = Math.floor(y/canvas.height*h)
-
-previous[ix + iy*w] = 255
+flashes.push({
+x:x,
+y:y,
+r:2,
+a:1
+})
 
 }
 
 canvas.addEventListener("touchstart",e=>{
 let t=e.touches[0]
-disturb(t.clientX,t.clientY)
+createRipple(t.clientX,t.clientY)
 })
 
 canvas.addEventListener("mousedown",e=>{
-disturb(e.clientX,e.clientY)
+createRipple(e.clientX,e.clientY)
 })
 
-function update(){
+function ilRipple(){
 
-for(let y=1;y<h-1;y++){
-for(let x=1;x<w-1;x++){
+let x=Math.random()*canvas.width
+let y=Math.random()*canvas.height
 
-let i = x + y*w
+createRipple(x,y)
 
-current[i] = (
-previous[i-1] +
-previous[i+1] +
-previous[i-w] +
-previous[i+w]
-)/2 - current[i]
-
-current[i] *= 0.99
-
-}
-}
-
-let temp = previous
-previous = current
-current = temp
+let next=40000+Math.random()*80000
+setTimeout(ilRipple,next)
 
 }
 
-function draw(){
+setTimeout(ilRipple,30000)
 
-ctx.clearRect(0,0,canvas.width,canvas.height)
+function drawRipple(r){
 
-for(let y=0;y<h;y++){
-for(let x=0;x<w;x++){
+ctx.beginPath()
 
-let i=x+y*w
-let value=previous[i]
+ctx.arc(r.x,r.y,r.r,0,Math.PI*2)
 
-ctx.fillStyle=
-"rgba(0,120,255,"+(value/255)+")"
+ctx.strokeStyle="rgba(0,120,255,"+r.a+")"
 
-ctx.fillRect(
-x*canvas.width/w,
-y*canvas.height/h,
-canvas.width/w,
-canvas.height/h
-)
+ctx.lineWidth=2
+
+ctx.stroke()
 
 }
 
-}
+function drawFlash(f){
+
+ctx.beginPath()
+
+ctx.arc(f.x,f.y,f.r,0,Math.PI*2)
+
+ctx.fillStyle="rgba(120,180,255,"+f.a+")"
+
+ctx.fill()
 
 }
 
 function animate(){
 
-update()
-draw()
+ctx.clearRect(0,0,canvas.width,canvas.height)
+
+time+=0.02
+
+let offset=Math.sin(time)*0.3
+
+ctx.save()
+
+ctx.translate(offset,0)
+
+for(let i=ripples.length-1;i>=0;i--){
+
+let r=ripples[i]
+
+drawRipple(r)
+
+r.r+=1.5
+r.a*=0.985
+
+if(r.a<0.01){
+ripples.splice(i,1)
+}
+
+}
+
+for(let i=flashes.length-1;i>=0;i--){
+
+let f=flashes[i]
+
+drawFlash(f)
+
+f.r+=1
+f.a*=0.9
+
+if(f.a<0.05){
+flashes.splice(i,1)
+}
+
+}
+
+ctx.restore()
+
 requestAnimationFrame(animate)
 
 }
