@@ -33,7 +33,6 @@ canvas.height = window.innerHeight
 
 let ripples=[]
 let flashes=[]
-
 let time=0
 
 function createRipple(x,y){
@@ -80,13 +79,17 @@ setTimeout(ilRipple,30000)
 function drawRipple(r){
 
 ctx.beginPath()
-
 ctx.arc(r.x,r.y,r.r,0,Math.PI*2)
-
 ctx.strokeStyle="rgba(0,120,255,"+r.a+")"
-
 ctx.lineWidth=2
+ctx.stroke()
 
+/* 光の歪みリング */
+
+ctx.beginPath()
+ctx.arc(r.x,r.y,r.r+3,0,Math.PI*2)
+ctx.strokeStyle="rgba(120,180,255,"+(r.a*0.6)+")"
+ctx.lineWidth=4
 ctx.stroke()
 
 }
@@ -94,11 +97,8 @@ ctx.stroke()
 function drawFlash(f){
 
 ctx.beginPath()
-
 ctx.arc(f.x,f.y,f.r,0,Math.PI*2)
-
 ctx.fillStyle="rgba(120,180,255,"+f.a+")"
-
 ctx.fill()
 
 }
@@ -108,11 +108,9 @@ function animate(){
 ctx.clearRect(0,0,canvas.width,canvas.height)
 
 time+=0.02
-
 let offset=Math.sin(time)*0.3
 
 ctx.save()
-
 ctx.translate(offset,0)
 
 for(let i=ripples.length-1;i>=0;i--){
@@ -121,7 +119,9 @@ let r=ripples[i]
 
 drawRipple(r)
 
-r.r+=1.5
+/* 波紋速度アップ */
+
+r.r+=2.8
 r.a*=0.985
 
 if(r.a<0.01){
