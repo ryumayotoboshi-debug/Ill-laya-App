@@ -78,6 +78,9 @@ setTimeout(ilRipple,30000)
 
 function drawRipple(r){
 
+/* ぼかし開始 */
+ctx.filter="blur(1px)"
+
 ctx.beginPath()
 ctx.arc(r.x,r.y,r.r,0,Math.PI*2)
 ctx.strokeStyle="rgba(0,120,255,"+r.a+")"
@@ -91,6 +94,9 @@ ctx.arc(r.x,r.y,r.r+3,0,Math.PI*2)
 ctx.strokeStyle="rgba(120,180,255,"+(r.a*0.6)+")"
 ctx.lineWidth=4
 ctx.stroke()
+
+/* ぼかし解除 */
+ctx.filter="none"
 
 }
 
