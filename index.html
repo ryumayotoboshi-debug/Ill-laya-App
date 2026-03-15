@@ -16,7 +16,6 @@ canvas{
 display:block;
 }
 </style>
-
 </head>
 
 <body>
@@ -105,8 +104,6 @@ Math.random()*height,
 
 }
 
-/* 21秒ごと */
-
 setInterval(autoRipple,21000)
 
 
@@ -122,31 +119,6 @@ r.radius+=r.speed
 }
 
 ripples=ripples.filter(r=>r.radius<900)
-
-}
-
-
-
-/* 干渉 */
-
-function interference(x,y,base){
-
-let offset=0
-
-for(let r of ripples){
-
-if(r.type!=="auto") continue
-
-let dx=x-r.x
-let dy=y-r.y
-
-let d=Math.sqrt(dx*dx+dy*dy)
-
-offset+=Math.sin(d*0.08-r.radius*0.08)*0.6
-
-}
-
-return base+offset
 
 }
 
@@ -176,34 +148,17 @@ let color=darkMode
 :`rgba(0,0,0,${alpha})`
 
 ctx.strokeStyle=color
-ctx.shadowBlur=14
-ctx.shadowColor=color
 
-let thickness=1.1+r.radius*0.01
+/* 発光削除 */
+ctx.shadowBlur=0
+
+let thickness=1+r.radius*0.008
 
 ctx.lineWidth=thickness
-
-/* userは真円 */
-
-if(r.type==="user"){
 
 ctx.beginPath()
 ctx.arc(r.x,r.y,r.radius,0,Math.PI*2)
 ctx.stroke()
-
-}
-
-/* autoは干渉 */
-
-else{
-
-let rad=interference(r.x,r.y,r.radius)
-
-ctx.beginPath()
-ctx.arc(r.x,r.y,rad,0,Math.PI*2)
-ctx.stroke()
-
-}
 
 }
 
