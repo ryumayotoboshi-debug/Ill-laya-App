@@ -95,7 +95,7 @@ function drawRipple(r){
         : `rgba(0,0,0,${alpha})`; // ライトモードは黒
 
     ctx.strokeStyle = color;
-    ctx.lineWidth = 1;
+    ctx.lineWidth = 3;
     ctx.shadowBlur = 4; // 滲み
     ctx.shadowColor = color;
     ctx.stroke();
