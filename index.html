@@ -27,7 +27,7 @@ display:block;
 <script>
 
 const canvas=document.getElementById("water");
-const ctx=canvas.getContext("2d");
+const ctx=canvas.getContext("2d",{alpha:true});
 
 let width;
 let height;
@@ -52,9 +52,7 @@ window.addEventListener("resize",resize);
 let darkMode=window.matchMedia("(prefers-color-scheme: dark)").matches;
 
 function updateBackground(){
-
 document.body.style.background=darkMode ? "#000000" : "#ffffff";
-
 }
 
 updateBackground();
@@ -122,8 +120,6 @@ age[index]=0;
 
 }
 
-
-
 canvas.addEventListener("mousedown",e=>{
 disturb(e.clientX,e.clientY);
 });
@@ -161,7 +157,6 @@ setTimeout(autoRipple,30000);
 function simulate(){
 
 for(let y=1;y<height-1;y++){
-
 for(let x=1;x<width-1;x++){
 
 let i=x+y*width;
@@ -175,7 +170,6 @@ current[i+width]
 
 val*=0.995;
 
-
 /* スペクトル減衰 */
 
 let damping=1-(age[i]*0.0004);
@@ -188,7 +182,6 @@ previous[i]=val;
 age[i]++;
 
 }
-
 }
 
 [current,previous]=[previous,current];
@@ -207,13 +200,9 @@ let img=ctx.createImageData(width,height);
 let data=img.data;
 
 for(let y=1;y<height-1;y++){
-
 for(let x=1;x<width-1;x++){
 
 let i=x+y*width;
-
-
-/* 法線 */
 
 let dx=current[i-1]-current[i+1];
 let dy=current[i-width]-current[i+width];
@@ -221,74 +210,43 @@ let dy=current[i-width]-current[i+width];
 let gradient=Math.sqrt(dx*dx+dy*dy);
 
 
-/* 屈折 */
-
-let offsetX=Math.floor(x+dx*0.06);
-let offsetY=Math.floor(y+dy*0.06);
-
-if(offsetX<0)offsetX=0;
-if(offsetY<0)offsetY=0;
-if(offsetX>=width)offsetX=width-1;
-if(offsetY>=height)offsetY=height-1;
-
-
-/* フレネル反射 */
-
-let fresnel=Math.pow(Math.min(gradient*0.04,1),3);
-
-
-/* subsurface scattering */
-
-let sss=Math.abs(current[i])*0.02;
-
-
-/* 波紋リング強調 */
+/* リング */
 
 let ring=Math.min(gradient*0.8,1);
-
-
-/* 青い干渉縁 */
-
-let blueEdge=ring*0.6;
-
-
-/* UI微発光 */
 
 let glow=ring*0.4;
 
 
 /* カラー */
 
-let r,g,b;
+let r,g,b,a;
 
 if(darkMode){
 
-r=40 + glow*80;
-g=120 + sss*60;
-b=200 + blueEdge*80;
+r=120+glow*100;
+g=180+glow*60;
+b=255;
 
 }else{
 
-r=220 + glow*20;
-g=240 + sss*20;
-b=255 + blueEdge*10;
+r=80+glow*60;
+g=140+glow*40;
+b=255;
 
 }
 
-if(r>255)r=255;
-if(g>255)g=255;
-if(b>255)b=255;
+/* 透明度 */
 
+a=ring*160;
 
 let index=(x+y*width)*4;
 
 data[index]=r;
 data[index+1]=g;
 data[index+2]=b;
-data[index+3]=255;
+data[index+3]=a;
 
 }
-
 }
 
 ctx.putImageData(img,0,0);
