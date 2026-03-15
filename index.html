@@ -5,7 +5,6 @@
 <title>Ill/Raya touch</title>
 
 <style>
-
 body{
 margin:0;
 overflow:hidden;
@@ -16,7 +15,6 @@ transition:background 0.3s;
 canvas{
 display:block;
 }
-
 </style>
 </head>
 
@@ -29,11 +27,15 @@ display:block;
 const canvas=document.getElementById("water");
 const ctx=canvas.getContext("2d");
 
+let width;
+let height;
+
 function resize(){
-canvas.width=window.innerWidth;
-canvas.height=window.innerHeight;
-initGrid();
+width=canvas.width=window.innerWidth;
+height=canvas.height=window.innerHeight;
+init();
 }
+
 window.addEventListener("resize",resize);
 
 
@@ -41,7 +43,7 @@ window.addEventListener("resize",resize);
 let darkMode=window.matchMedia("(prefers-color-scheme: dark)").matches;
 
 function updateBackground(){
-document.body.style.background=darkMode?"#000000":"#ffffff";
+document.body.style.background=darkMode?"#000":"#fff";
 }
 
 updateBackground();
@@ -53,23 +55,15 @@ updateBackground();
 });
 
 
-// ===== 水面グリッド =====
+// ===== 水面データ =====
 
-const scale=4; // 解像度（大きいほど軽い）
+let current;
+let previous;
 
-let cols;
-let rows;
+function init(){
 
-let current=[];
-let previous=[];
-
-function initGrid(){
-
-cols=Math.floor(canvas.width/scale);
-rows=Math.floor(canvas.height/scale);
-
-current=new Array(cols*rows).fill(0);
-previous=new Array(cols*rows).fill(0);
+current=new Float32Array(width*height);
+previous=new Float32Array(width*height);
 
 }
 
@@ -79,15 +73,29 @@ resize();
 // 波発生
 function disturb(x,y){
 
-let gx=Math.floor(x/scale);
-let gy=Math.floor(y/scale);
+let radius=20+Math.random()*40;
 
-let i=gx+gy*cols;
+for(let j=-radius;j<radius;j++){
+for(let i=-radius;i<radius;i++){
 
-if(i>=0 && i<current.length){
+let dx=i;
+let dy=j;
 
-current[i]=120;
+let dist=Math.sqrt(dx*dx+dy*dy);
 
+if(dist<radius){
+
+let index=(x+i)+(y+j)*width;
+
+if(index>0 && index<current.length){
+
+current[index]=150*(1-dist/radius);
+
+}
+
+}
+
+}
 }
 
 }
@@ -107,10 +115,10 @@ disturb(t.clientX,t.clientY);
 // 自動波紋
 function autoRipple(){
 
-let x=Math.random()*canvas.width;
-let y=Math.random()*canvas.height;
-
-disturb(x,y);
+disturb(
+Math.random()*width,
+Math.random()*height
+);
 
 setTimeout(autoRipple,30000+Math.random()*60000);
 
@@ -122,19 +130,18 @@ setTimeout(autoRipple,30000);
 // 波動計算
 function simulate(){
 
-for(let x=1;x<cols-1;x++){
+for(let y=1;y<height-1;y++){
 
-for(let y=1;y<rows-1;y++){
+for(let x=1;x<width-1;x++){
 
-let i=x+y*cols;
+let i=x+y*width;
 
-let sum=
+let val=(
 current[i-1]+
 current[i+1]+
-current[i-cols]+
-current[i+cols];
-
-let val=sum/2-previous[i];
+current[i-width]+
+current[i+width]
+)/2-previous[i];
 
 val*=0.995;
 
@@ -149,43 +156,52 @@ previous[i]=val;
 }
 
 
-// 描画
+// 描画（屈折）
 function render(){
 
-ctx.clearRect(0,0,canvas.width,canvas.height);
+let img=ctx.createImageData(width,height);
+let data=img.data;
 
-for(let x=1;x<cols-1;x++){
+for(let y=1;y<height-1;y++){
 
-for(let y=1;y<rows-1;y++){
+for(let x=1;x<width-1;x++){
 
-let i=x+y*cols;
+let i=x+y*width;
 
-let h=current[i];
+let dx=current[i-1]-current[i+1];
+let dy=current[i-width]-current[i+width];
 
-if(Math.abs(h)<0.5) continue;
+let offsetX=Math.floor(x+dx*0.05);
+let offsetY=Math.floor(y+dy*0.05);
 
-let alpha=Math.min(Math.abs(h)/120,1);
+offsetX=Math.max(0,Math.min(width-1,offsetX));
+offsetY=Math.max(0,Math.min(height-1,offsetY));
+
+let index=(x+y*width)*4;
+
+let intensity=Math.abs(current[i])*0.6;
 
 if(darkMode){
 
-ctx.fillStyle=`rgba(200,255,255,${alpha})`;
+data[index]=200+intensity;
+data[index+1]=255;
+data[index+2]=255;
 
 }else{
 
-ctx.fillStyle=`rgba(0,120,255,${alpha})`;
+data[index]=0;
+data[index+1]=120+intensity;
+data[index+2]=255;
 
 }
 
-ctx.fillRect(
-x*scale,
-y*scale,
-scale,
-scale
-);
+data[index+3]=255;
 
 }
 
 }
+
+ctx.putImageData(img,0,0);
 
 }
 
