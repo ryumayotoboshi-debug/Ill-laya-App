@@ -34,6 +34,7 @@ canvas.width=window.innerWidth;
 canvas.height=window.innerHeight;
 }
 resize();
+
 window.addEventListener("resize",resize);
 
 
@@ -41,22 +42,19 @@ window.addEventListener("resize",resize);
 let darkMode=window.matchMedia("(prefers-color-scheme: dark)").matches;
 
 
-// 背景色
+// 背景
 function updateBackground(){
-
 document.body.style.background=darkMode?"#000000":"#ffffff";
-
 }
-
 updateBackground();
 
 
-// 波紋色取得
+// 波紋カラー
 function rippleColor(alpha){
 
 if(darkMode){
 
-return `rgba(255,255,255,${alpha})`;
+return `rgba(220,240,255,${alpha})`;
 
 }else{
 
@@ -74,7 +72,7 @@ let time=0;
 // 波紋生成
 function createRipple(x,y){
 
-let maxSize=120+Math.random()*200;
+let baseSpeed=6+Math.random()*2;
 
 ripples.push({
 
@@ -83,13 +81,13 @@ y:y,
 
 radius:0,
 
-speed:3+Math.random()*3,
+baseSpeed:baseSpeed,
 
-alpha:0.35,
+alpha:0.38,
 
-decay:0.986,
+decay:0.987,
 
-max:maxSize,
+max:120+Math.random()*220,
 
 rings:3+Math.floor(Math.random()*3),
 
@@ -133,7 +131,8 @@ function drawRipple(r){
 
 for(let i=0;i<r.rings;i++){
 
-let delay=i*16;
+let delay=i*18;
+
 let radius=r.radius-delay;
 
 if(radius<=0) continue;
@@ -152,12 +151,12 @@ let dy=r.y-other.y;
 
 let dist=Math.sqrt(dx*dx+dy*dy);
 
-interference+=Math.sin(dist*0.05-time*0.04)*0.3;
+interference+=Math.sin(dist*0.05-time*0.04)*0.25;
 
 }
 
 
-// 歪み
+// 水歪み
 let distortion=
 Math.sin(a*3+r.radius*0.02+r.phase)*0.6+
 Math.sin(a*7+r.radius*0.015)*0.25+
@@ -185,12 +184,12 @@ let alpha=r.alpha*(1-i*0.25);
 
 
 // 滲み
-ctx.shadowColor=rippleColor(0.5);
-ctx.shadowBlur=12;
+ctx.shadowColor=rippleColor(0.7);
+ctx.shadowBlur=18;
 
 ctx.strokeStyle=rippleColor(alpha);
 
-ctx.lineWidth=0.8;
+ctx.lineWidth=0.9;
 
 ctx.stroke();
 
@@ -214,10 +213,14 @@ let r=ripples[i];
 
 drawRipple(r);
 
-r.radius+=r.speed;
 
-r.speed*=0.985;
+// 非線形伝播
+let speed=r.baseSpeed/(1+r.radius*0.015);
 
+r.radius+=speed;
+
+
+// フェード
 r.alpha*=r.decay;
 
 if(r.radius>r.max || r.alpha<0.02){
@@ -237,7 +240,7 @@ requestAnimationFrame(animate);
 animate();
 
 
-// OSテーマ変更検知
+// OSテーマ変更
 window.matchMedia("(prefers-color-scheme: dark)")
 .addEventListener("change",e=>{
 
