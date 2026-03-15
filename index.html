@@ -24,19 +24,19 @@ display:block;
 
 <script>
 
-const canvas=document.getElementById("water");
-const ctx=canvas.getContext("2d");
+const canvas = document.getElementById("water");
+const ctx = canvas.getContext("2d");
 
 let width;
 let height;
 
 function resize(){
-width=canvas.width=window.innerWidth;
-height=canvas.height=window.innerHeight;
+width = canvas.width = window.innerWidth;
+height = canvas.height = window.innerHeight;
+init();
 }
 
 window.addEventListener("resize",resize);
-resize();
 
 
 
@@ -44,95 +44,108 @@ resize();
    ダークモード
 ========================= */
 
-let darkMode=window.matchMedia("(prefers-color-scheme: dark)").matches;
+let darkMode = window.matchMedia("(prefers-color-scheme: dark)").matches;
 
 function updateBackground(){
-document.body.style.background=darkMode ? "#000000" : "#ffffff";
+document.body.style.background = darkMode ? "#000000" : "#ffffff";
 }
 
 updateBackground();
 
 window.matchMedia("(prefers-color-scheme: dark)")
 .addEventListener("change",e=>{
-darkMode=e.matches;
+darkMode = e.matches;
 updateBackground();
 });
 
 
 
 /* =========================
-   波紋データ
+   水面データ
 ========================= */
 
-let ripples=[];
+let current;
+let previous;
 
+function init(){
 
-
-function createRipple(x,y){
-
-ripples.push({
-
-x:x,
-y:y,
-radius:0,
-speed:2+Math.random()*1.5,
-alpha:1,
-thickness:2+Math.random()*2
-
-});
+current = new Float32Array(width*height);
+previous = new Float32Array(width*height);
 
 }
+
+resize();
 
 
 
 /* =========================
-   入力
+   波生成
 ========================= */
 
+function disturb(x,y){
+
+let radius = 40;
+
+for(let j=-radius;j<radius;j++){
+for(let i=-radius;i<radius;i++){
+
+let dist = Math.sqrt(i*i + j*j);
+
+if(dist < radius){
+
+let px = x + i;
+let py = y + j;
+
+if(px<0 || py<0 || px>=width || py>=height) continue;
+
+let index = px + py*width;
+
+current[index] = 180*(1-dist/radius);
+
+}
+
+}
+}
+
+}
+
 canvas.addEventListener("mousedown",e=>{
-createRipple(e.clientX,e.clientY);
+disturb(e.clientX,e.clientY);
 });
 
 canvas.addEventListener("touchstart",e=>{
 let t=e.touches[0];
-createRipple(t.clientX,t.clientY);
+disturb(t.clientX,t.clientY);
 });
 
 
 
 /* =========================
-   自動波紋
+   波動シミュレーション
 ========================= */
 
-function autoRipple(){
+function simulate(){
 
-createRipple(
-Math.random()*width,
-Math.random()*height
-);
+for(let y=1;y<height-1;y++){
+for(let x=1;x<width-1;x++){
 
-setTimeout(autoRipple,30000+Math.random()*60000);
+let i = x + y*width;
 
-}
+let val = (
+current[i-1] +
+current[i+1] +
+current[i-width] +
+current[i+width]
+)/2 - previous[i];
 
-setTimeout(autoRipple,30000);
+val *= 0.995;
 
-
-
-/* =========================
-   更新
-========================= */
-
-function update(){
-
-for(let r of ripples){
-
-r.radius+=r.speed;
-r.alpha*=0.985;
+previous[i] = val;
 
 }
+}
 
-ripples=ripples.filter(r=>r.alpha>0.02);
+[current,previous] = [previous,current];
 
 }
 
@@ -146,46 +159,101 @@ function render(){
 
 ctx.clearRect(0,0,width,height);
 
-for(let r of ripples){
+for(let y=2;y<height-2;y+=2){
+for(let x=2;x<width-2;x+=2){
 
-let alpha=r.alpha;
+let i = x + y*width;
+
+/* 法線（波の勾配） */
+
+let dx = current[i-1] - current[i+1];
+let dy = current[i-width] - current[i+width];
+
+let gradient = Math.sqrt(dx*dx + dy*dy);
+
+
+/* 屈折 */
+
+let refX = x + dx*0.08;
+let refY = y + dy*0.08;
+
+
+/* フレネル風ハイライト */
+
+let highlight = Math.pow(Math.min(gradient*0.03,1),2);
+
+
+/* Apple Liquid UI風グロー */
+
+let glow = gradient * 0.15;
+
+
+/* カラー */
+
+let r,g,b,a;
 
 if(darkMode){
 
-ctx.strokeStyle=`rgba(120,220,255,${alpha})`;
+r = 120 + highlight*100;
+g = 200 + highlight*40;
+b = 255;
 
 }else{
 
-ctx.strokeStyle=`rgba(60,140,255,${alpha})`;
+r = 0;
+g = 0;
+b = 0;
 
 }
 
-ctx.lineWidth=r.thickness;
+a = Math.min(gradient*4,1);
+
+
+/* 波紋線（細かいリング） */
+
+for(let k=0;k<3;k++){
 
 ctx.beginPath();
-ctx.arc(r.x,r.y,r.radius,0,Math.PI*2);
-ctx.stroke();
 
+ctx.arc(
+refX,
+refY,
+gradient*8 + k*2,
+0,
+Math.PI*2
+);
 
-
-/* 微発光 */
-
-ctx.lineWidth=r.thickness*3;
+ctx.lineWidth = 0.6;
 
 if(darkMode){
 
-ctx.strokeStyle=`rgba(120,220,255,${alpha*0.2})`;
+ctx.strokeStyle = `rgba(${r},${g},${b},${a*0.3})`;
 
 }else{
 
-ctx.strokeStyle=`rgba(80,160,255,${alpha*0.2})`;
+ctx.strokeStyle = `rgba(0,0,0,${a*0.3})`;
 
 }
 
-ctx.beginPath();
-ctx.arc(r.x,r.y,r.radius,0,Math.PI*2);
 ctx.stroke();
 
+}
+
+
+/* グロー */
+
+if(darkMode){
+
+ctx.beginPath();
+ctx.arc(refX,refY,gradient*10,0,Math.PI*2);
+
+ctx.lineWidth = 2;
+ctx.strokeStyle = `rgba(120,220,255,${glow})`;
+ctx.stroke();
+
+}
+
+}
 }
 
 }
@@ -198,7 +266,7 @@ ctx.stroke();
 
 function animate(){
 
-update();
+simulate();
 render();
 
 requestAnimationFrame(animate);
