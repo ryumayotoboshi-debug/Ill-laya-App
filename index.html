@@ -30,164 +30,140 @@ background:#000000;
 
 <script>
 
-const canvas = document.getElementById("water");
-const ctx = canvas.getContext("2d");
+const canvas=document.getElementById("water");
+const ctx=canvas.getContext("2d");
 
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+canvas.width=window.innerWidth;
+canvas.height=window.innerHeight;
 
-const isDarkMode = window.matchMedia("(prefers-color-scheme: dark)").matches;
+const isDarkMode=window.matchMedia("(prefers-color-scheme: dark)").matches;
 
+const width=canvas.width;
+const height=canvas.height;
 
-// 解像度
-const size = 2;
+const damping=0.995;
 
-const cols = Math.floor(canvas.width/size);
-const rows = Math.floor(canvas.height/size);
+let current=new Float32Array(width*height);
+let previous=new Float32Array(width*height);
 
+const image=ctx.createImageData(width,height);
+const data=image.data;
 
-// 水面配列
-let current = [];
-let previous = [];
-
-for(let i=0;i<cols;i++){
-
-current[i]=[];
-previous[i]=[];
-
-for(let j=0;j<rows;j++){
-
-current[i][j]=0;
-previous[i][j]=0;
-
+function index(x,y){
+return x+y*width;
 }
 
-}
-
-
-// 減衰
-const damping = 0.995;
-
-
-// 波紋発生
 function disturb(x,y){
 
-let gx = Math.floor(x/size);
-let gy = Math.floor(y/size);
+let radius=6;
 
-if(gx>1 && gx<cols-1 && gy>1 && gy<rows-1){
+for(let j=-radius;j<radius;j++){
+for(let i=-radius;i<radius;i++){
 
-previous[gx][gy] = 300;
+let dx=x+i;
+let dy=y+j;
+
+if(dx>1 && dx<width-1 && dy>1 && dy<height-1){
+
+previous[index(dx,dy)]+=200;
 
 }
 
 }
+}
 
+}
 
-// 入力
 canvas.addEventListener("mousedown",e=>{
-
 disturb(e.clientX,e.clientY);
-
 });
 
 canvas.addEventListener("touchstart",e=>{
-
-let t = e.touches[0];
-
+let t=e.touches[0];
 disturb(t.clientX,t.clientY);
-
 });
 
+function randomRipple(){
 
-// ランダム波紋
-function ilRipple(){
-
-let x=Math.random()*canvas.width;
-let y=Math.random()*canvas.height;
+let x=Math.random()*width;
+let y=Math.random()*height;
 
 disturb(x,y);
 
-let next = 40000 + Math.random()*80000;
+let next=40000+Math.random()*80000;
 
-setTimeout(ilRipple,next);
+setTimeout(randomRipple,next);
 
 }
 
-setTimeout(ilRipple,30000);
+setTimeout(randomRipple,30000);
 
-
-// 水シミュレーション
 function update(){
 
-for(let x=1;x<cols-1;x++){
+for(let y=1;y<height-1;y++){
+for(let x=1;x<width-1;x++){
 
-for(let y=1;y<rows-1;y++){
+let i=index(x,y);
 
-current[x][y] =
-(
-previous[x-1][y] +
-previous[x+1][y] +
-previous[x][y-1] +
-previous[x][y+1]
-)/2
-- current[x][y];
+current[i]=(
+previous[i-1]+
+previous[i+1]+
+previous[i-width]+
+previous[i+width]
+)/2-current[i];
 
-current[x][y] *= damping;
+current[i]*=damping;
+
+}
+}
+
+let temp=previous;
+previous=current;
+current=temp;
 
 }
 
-}
-
-let temp = previous;
-previous = current;
-current = temp;
-
-}
-
-
-// 描画
 function draw(){
 
-ctx.clearRect(0,0,canvas.width,canvas.height);
+for(let y=1;y<height-1;y++){
+for(let x=1;x<width-1;x++){
 
-for(let x=1;x<cols-1;x++){
+let i=index(x,y);
 
-for(let y=1;y<rows-1;y++){
+let dx=previous[i-1]-previous[i+1];
+let dy=previous[i-width]-previous[i+width];
 
-let h = previous[x][y] - previous[x+1][y];
+let shade=(dx+dy)*0.5;
 
-let alpha = Math.min(Math.abs(h)/150,0.35);
+let color;
 
-if(alpha>0.01){
+if(isDarkMode){
 
-let color = isDarkMode
-? `rgba(255,255,255,${alpha})`
-: `rgba(0,120,255,${alpha})`;
+color=220+shade;
 
-ctx.fillStyle=color;
+}else{
 
-ctx.fillRect(
-x*size,
-y*size,
-size,
-size
-);
+color=150+shade;
 
 }
 
-}
+let p=i*4;
+
+data[p]=color;
+data[p+1]=isDarkMode?color:color+40;
+data[p+2]=isDarkMode?color:255;
+data[p+3]=80;
 
 }
+}
+
+ctx.putImageData(image,0,0);
 
 }
 
-
-// アニメーション
 function animate(){
 
 update();
-
 draw();
 
 requestAnimationFrame(animate);
