@@ -150,7 +150,7 @@ r.radius+=r.speed;
 if(r.type==="tap"){
 r.alpha*=0.94;
 }else{
-r.alpha*=0.985;
+r.alpha *= 1 - r.radius * 0.0006;
 }
 
 }
