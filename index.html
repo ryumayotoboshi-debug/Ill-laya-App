@@ -86,7 +86,7 @@ function drawRipple(r){
         else ctx.lineTo(x,y);
     }
     ctx.closePath();
-    const alpha = r.a;
+    const alpha = r.a * 1.5; // 透明度を1.5倍に
     const color = darkMode
         ? `rgba(255,255,255,${alpha})`
         : `rgba(0,0,0,${alpha})`; // ライトモードは黒
