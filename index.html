@@ -28,27 +28,42 @@ display:block;
 const canvas=document.getElementById("water");
 const ctx=canvas.getContext("2d");
 
+function resize(){
 canvas.width=window.innerWidth;
 canvas.height=window.innerHeight;
+}
 
+resize();
+window.addEventListener("resize",resize);
+
+
+// 波紋配列
 let ripples=[];
-let time=0;
 
 
 // 波紋生成
 function createRipple(x,y){
 
+let maxSize=120+Math.random()*180;
+
 ripples.push({
 
 x:x,
 y:y,
-r:0,
 
-speed:5+Math.random()*2,
+radius:0,
+
+speed:3+Math.random()*3,
+
 alpha:0.35,
+
 decay:0.985,
 
-phase:Math.random()*Math.PI
+max:maxSize,
+
+rings:3+Math.floor(Math.random()*3),
+
+phase:Math.random()*Math.PI*2
 
 });
 
@@ -88,20 +103,22 @@ function drawRipple(r){
 
 ctx.globalCompositeOperation="lighter";
 
-for(let i=0;i<4;i++){
+for(let i=0;i<r.rings;i++){
 
-let delay=i*12;
-let radius=r.r-delay;
+let delay=i*16;
+
+let radius=r.radius-delay;
 
 if(radius>0){
 
 ctx.beginPath();
 
-for(let a=0;a<Math.PI*2;a+=0.12){
+for(let a=0;a<Math.PI*2;a+=0.1){
 
+// 水らしい微妙な歪み
 let distortion=
-Math.sin(a*3+r.r*0.03+r.phase)*0.4+
-Math.sin(a*7+r.r*0.02)*0.15;
+Math.sin(a*3+r.radius*0.02+r.phase)*0.6+
+Math.sin(a*7+r.radius*0.015)*0.25;
 
 let x=r.x+Math.cos(a)*(radius+distortion);
 let y=r.y+Math.sin(a)*(radius+distortion);
@@ -116,9 +133,11 @@ ctx.lineTo(x,y);
 
 ctx.closePath();
 
-ctx.strokeStyle=`rgba(0,120,255,${r.alpha*(1-i*0.25)})`;
+let alpha=r.alpha*(1-i*0.25);
 
-ctx.lineWidth=0.8;
+ctx.strokeStyle=`rgba(0,120,255,${alpha})`;
+
+ctx.lineWidth=0.9;
 
 ctx.stroke();
 
@@ -136,6 +155,7 @@ function animate(){
 
 ctx.clearRect(0,0,canvas.width,canvas.height);
 
+// 滲み
 ctx.filter="blur(1.4px)";
 
 for(let i=ripples.length-1;i>=0;i--){
@@ -144,14 +164,20 @@ let r=ripples[i];
 
 drawRipple(r);
 
-r.r+=r.speed;
+// 波紋拡大
+r.radius+=r.speed;
 
+// 外側ほど減速
 r.speed*=0.985;
 
+// フェード
 r.alpha*=r.decay;
 
-if(r.alpha<0.02){
+// 最大サイズ到達
+if(r.radius>r.max || r.alpha<0.02){
+
 ripples.splice(i,1);
+
 }
 
 }
