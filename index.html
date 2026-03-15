@@ -66,9 +66,11 @@ canvas.addEventListener("pointerdown", e => {
 });
 
 // 自動生成（イルの反応） 21秒ごと
-function autoRipple(){
-    createRipple(width/2, height/2); // 画面中央
-    setTimeout(autoRipple, 21000);
+function autoRipple() {
+    const x = Math.random() * width;
+    const y = Math.random() * height;
+    createRipple(x, y); // ランダム位置
+    setTimeout(autoRipple, 21000); // 21秒ごと
 }
 setTimeout(autoRipple, 21000);
 
@@ -96,7 +98,7 @@ function drawRipple(r){
 
     ctx.strokeStyle = color;
     ctx.lineWidth = 3;
-    ctx.shadowBlur = 4; // 滲み
+    ctx.shadowBlur = 6; // 滲み
     ctx.shadowColor = color;
     ctx.stroke();
     ctx.shadowBlur = 0;
