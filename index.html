@@ -32,86 +32,75 @@ const ctx=canvas.getContext("2d");
 function resize(){
 canvas.width=window.innerWidth;
 canvas.height=window.innerHeight;
+initGrid();
 }
-resize();
-
 window.addEventListener("resize",resize);
 
 
-// ダークモード判定
+// ダークモード
 let darkMode=window.matchMedia("(prefers-color-scheme: dark)").matches;
 
-
-// 背景
 function updateBackground(){
 document.body.style.background=darkMode?"#000000":"#ffffff";
 }
+
 updateBackground();
 
-
-// 波紋カラー
-function rippleBright(alpha){
-
-if(darkMode){
-return `rgba(200,255,255,${alpha})`;
-}else{
-return `rgba(0,120,255,${alpha})`;
-}
-
-}
-
-function rippleDark(alpha){
-
-if(darkMode){
-return `rgba(120,200,255,${alpha*0.6})`;
-}else{
-return `rgba(0,80,200,${alpha*0.6})`;
-}
-
-}
-
-
-let ripples=[];
-let time=0;
-
-
-// 波紋生成
-function createRipple(x,y){
-
-let baseSpeed=6+Math.random()*2;
-
-ripples.push({
-
-x:x,
-y:y,
-
-radius:0,
-
-baseSpeed:baseSpeed,
-
-alpha:0.38,
-
-decay:0.987,
-
-max:120+Math.random()*220,
-
-rings:3+Math.floor(Math.random()*3),
-
-phase:Math.random()*Math.PI*2
-
+window.matchMedia("(prefers-color-scheme: dark)")
+.addEventListener("change",e=>{
+darkMode=e.matches;
+updateBackground();
 });
+
+
+// ===== 水面グリッド =====
+
+const scale=4; // 解像度（大きいほど軽い）
+
+let cols;
+let rows;
+
+let current=[];
+let previous=[];
+
+function initGrid(){
+
+cols=Math.floor(canvas.width/scale);
+rows=Math.floor(canvas.height/scale);
+
+current=new Array(cols*rows).fill(0);
+previous=new Array(cols*rows).fill(0);
+
+}
+
+resize();
+
+
+// 波発生
+function disturb(x,y){
+
+let gx=Math.floor(x/scale);
+let gy=Math.floor(y/scale);
+
+let i=gx+gy*cols;
+
+if(i>=0 && i<current.length){
+
+current[i]=120;
+
+}
 
 }
 
 
 // 入力
 canvas.addEventListener("mousedown",e=>{
-createRipple(e.clientX,e.clientY);
+disturb(e.clientX,e.clientY);
 });
 
 canvas.addEventListener("touchstart",e=>{
 let t=e.touches[0];
-createRipple(t.clientX,t.clientY);
+disturb(t.clientX,t.clientY);
 });
 
 
@@ -121,124 +110,80 @@ function autoRipple(){
 let x=Math.random()*canvas.width;
 let y=Math.random()*canvas.height;
 
-createRipple(x,y);
+disturb(x,y);
 
-let next=30000+Math.random()*60000;
-
-setTimeout(autoRipple,next);
+setTimeout(autoRipple,30000+Math.random()*60000);
 
 }
 
 setTimeout(autoRipple,30000);
 
 
-// 波紋描画
-function drawRipple(r){
+// 波動計算
+function simulate(){
 
-for(let i=0;i<r.rings;i++){
+for(let x=1;x<cols-1;x++){
 
-let delay=i*18;
-let radius=r.radius-delay;
+for(let y=1;y<rows-1;y++){
 
-if(radius<=0) continue;
+let i=x+y*cols;
 
-let points=[];
+let sum=
+current[i-1]+
+current[i+1]+
+current[i-cols]+
+current[i+cols];
 
-for(let a=0;a<Math.PI*2;a+=0.08){
+let val=sum/2-previous[i];
 
-// 干渉
-let interference=0;
+val*=0.995;
 
-for(let other of ripples){
+previous[i]=val;
 
-let dx=r.x-other.x;
-let dy=r.y-other.y;
+}
 
-let dist=Math.sqrt(dx*dx+dy*dy);
+}
 
-interference+=Math.sin(dist*0.05-time*0.04)*0.25;
+[current,previous]=[previous,current];
 
 }
 
 
-// 歪み
-let distortion=
-Math.sin(a*3+r.radius*0.02+r.phase)*0.6+
-Math.sin(a*7+r.radius*0.015)*0.25+
-interference;
+// 描画
+function render(){
 
+ctx.clearRect(0,0,canvas.width,canvas.height);
 
-// 微振動
-let micro=Math.sin(time*0.02+a*4)*0.3;
+for(let x=1;x<cols-1;x++){
 
+for(let y=1;y<rows-1;y++){
 
-let x=r.x+Math.cos(a)*(radius+distortion+micro);
-let y=r.y+Math.sin(a)*(radius+distortion+micro);
+let i=x+y*cols;
 
-points.push({x,y,a});
+let h=current[i];
 
-}
+if(Math.abs(h)<0.5) continue;
 
-let alpha=r.alpha*(1-i*0.25);
+let alpha=Math.min(Math.abs(h)/120,1);
 
+if(darkMode){
 
-// 山（明るい線）
-ctx.beginPath();
+ctx.fillStyle=`rgba(200,255,255,${alpha})`;
 
-points.forEach((p,index)=>{
-
-let offset=1.2;
-
-let x=p.x+Math.cos(p.a)*offset;
-let y=p.y+Math.sin(p.a)*offset;
-
-if(index===0){
-ctx.moveTo(x,y);
 }else{
-ctx.lineTo(x,y);
+
+ctx.fillStyle=`rgba(0,120,255,${alpha})`;
+
 }
 
-});
+ctx.fillRect(
+x*scale,
+y*scale,
+scale,
+scale
+);
 
-ctx.closePath();
-
-ctx.shadowColor=rippleBright(0.9);
-ctx.shadowBlur=20;
-
-ctx.strokeStyle=rippleBright(alpha);
-
-ctx.lineWidth=1;
-
-ctx.stroke();
-
-
-// 谷（暗い線）
-ctx.beginPath();
-
-points.forEach((p,index)=>{
-
-let offset=-1.2;
-
-let x=p.x+Math.cos(p.a)*offset;
-let y=p.y+Math.sin(p.a)*offset;
-
-if(index===0){
-ctx.moveTo(x,y);
-}else{
-ctx.lineTo(x,y);
 }
-
-});
-
-ctx.closePath();
-
-ctx.shadowBlur=0;
-
-ctx.strokeStyle=rippleDark(alpha);
-
-ctx.lineWidth=1;
-
-ctx.stroke();
 
 }
 
@@ -248,54 +193,14 @@ ctx.stroke();
 // アニメーション
 function animate(){
 
-time++;
-
-ctx.clearRect(0,0,canvas.width,canvas.height);
-
-ctx.filter="blur(1.1px)";
-
-for(let i=ripples.length-1;i>=0;i--){
-
-let r=ripples[i];
-
-drawRipple(r);
-
-
-// 非線形伝播
-let speed=r.baseSpeed/(1+r.radius*0.015);
-
-r.radius+=speed;
-
-
-// フェード
-r.alpha*=r.decay;
-
-if(r.radius>r.max || r.alpha<0.02){
-
-ripples.splice(i,1);
-
-}
-
-}
-
-ctx.filter="none";
+simulate();
+render();
 
 requestAnimationFrame(animate);
 
 }
 
 animate();
-
-
-// OSテーマ変更
-window.matchMedia("(prefers-color-scheme: dark)")
-.addEventListener("change",e=>{
-
-darkMode=e.matches;
-
-updateBackground();
-
-});
 
 </script>
 
