@@ -5,6 +5,7 @@
 <title>Il/Raya touch</title>
 
 <style>
+
 body{
 margin:0;
 overflow:hidden;
@@ -17,6 +18,7 @@ display:block;
 width:100vw;
 height:100vh;
 }
+
 </style>
 </head>
 
@@ -31,8 +33,6 @@ const ctx = canvas.getContext("2d")
 
 let width
 let height
-
-/* Retina対応 */
 
 const DPR = window.devicePixelRatio || 1
 
@@ -61,15 +61,19 @@ resize()
 let darkMode = window.matchMedia("(prefers-color-scheme: dark)").matches
 
 function updateBackground(){
+
 document.body.style.background = darkMode ? "#000000" : "#ffffff"
+
 }
 
 updateBackground()
 
 window.matchMedia("(prefers-color-scheme: dark)")
 .addEventListener("change",e=>{
+
 darkMode = e.matches
 updateBackground()
+
 })
 
 
@@ -81,30 +85,37 @@ let ripples = []
 function createRipple(x,y){
 
 ripples.push({
-x:x,
-y:y,
-radius:0,
-speed:6 + Math.random()*1.2
+
+x: Math.round(x),
+y: Math.round(y),
+
+radius: 4,
+speed: 5
+
 })
 
 }
 
 
 
-/* タップ入力 */
+/* タップ */
 
 canvas.addEventListener("mousedown",e=>{
+
 createRipple(e.clientX,e.clientY)
+
 })
 
 canvas.addEventListener("touchstart",e=>{
+
 let t = e.touches[0]
 createRipple(t.clientX,t.clientY)
+
 })
 
 
 
-/* イルからの反応（21秒） */
+/* Ilからの波紋（21秒） */
 
 function autoRipple(){
 
@@ -124,27 +135,13 @@ setInterval(autoRipple,21000)
 function update(){
 
 for(let r of ripples){
+
 r.radius += r.speed
-}
-
-ripples = ripples.filter(r=>r.radius < 900)
+r.radius = Math.round(r.radius)
 
 }
 
-
-
-/* 完全版レンダリング（リング描画） */
-
-function drawRing(x,y,r,thickness,color){
-
-ctx.beginPath()
-
-ctx.arc(x,y,r,0,Math.PI*2)
-
-ctx.arc(x,y,r-thickness,0,Math.PI*2,true)
-
-ctx.fillStyle = color
-ctx.fill()
+ripples = ripples.filter(r => r.radius < 900)
 
 }
 
@@ -156,38 +153,31 @@ function render(){
 
 ctx.clearRect(0,0,width,height)
 
-let t = performance.now()*0.001
-
-ctx.save()
-
-/* 微小な水面ゆらぎ */
-
-ctx.translate(
-Math.sin(t*0.7)*0.4,
-Math.cos(t*0.6)*0.4
-)
+ctx.lineWidth = 1
 
 for(let r of ripples){
 
-let alpha = 1/(1+r.radius*0.008)
+let alpha = 1/(1+r.radius*0.01)
 
 let color = darkMode
 ? `rgba(170,245,255,${alpha})`
 : `rgba(0,0,0,${alpha})`
 
-let thickness = Math.max(1.1, r.radius*0.005)
+ctx.strokeStyle = color
 
-drawRing(
+ctx.beginPath()
+
+ctx.arc(
 r.x,
 r.y,
 r.radius,
-thickness,
-color
+0,
+Math.PI*2
 )
 
-}
+ctx.stroke()
 
-ctx.restore()
+}
 
 }
 
