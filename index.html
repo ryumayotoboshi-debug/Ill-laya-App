@@ -3,199 +3,117 @@
 <head>
 <meta charset="UTF-8">
 <title>Il/Raya touch</title>
-
 <style>
-
 body{
-margin:0;
-overflow:hidden;
-background:#ffffff;
-transition:background 0.3s;
+  margin:0;
+  overflow:hidden;
+  background:#ffffff;
+  transition:background 0.3s;
 }
 
 canvas{
-display:block;
-width:100vw;
-height:100vh;
+  display:block;
 }
-
 </style>
 </head>
-
 <body>
 
 <canvas id="water"></canvas>
 
 <script>
+const canvas = document.getElementById("water");
+const ctx = canvas.getContext("2d");
 
-const canvas = document.getElementById("water")
-const ctx = canvas.getContext("2d")
-
-let width
-let height
-
-const DPR = window.devicePixelRatio || 1
+let width, height;
 
 function resize(){
-
-width = window.innerWidth
-height = window.innerHeight
-
-canvas.style.width = width + "px"
-canvas.style.height = height + "px"
-
-canvas.width = width * DPR
-canvas.height = height * DPR
-
-ctx.setTransform(DPR,0,0,DPR,0,0)
-
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = window.innerHeight;
 }
+window.addEventListener("resize", resize);
+resize();
 
-window.addEventListener("resize",resize)
-resize()
-
-
-
-/* ダークモード */
-
-let darkMode = window.matchMedia("(prefers-color-scheme: dark)").matches
-
+// ダークモード判定
+let darkMode = window.matchMedia("(prefers-color-scheme: dark)").matches;
 function updateBackground(){
+    document.body.style.background = darkMode ? "#000000" : "#ffffff";
+}
+updateBackground();
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", e => {
+    darkMode = e.matches;
+    updateBackground();
+});
 
-document.body.style.background = darkMode ? "#000000" : "#ffffff"
+// 波紋配列
+let ripples = [];
 
+// 波紋生成
+function createRipple(x, y){
+    ripples.push({
+        x: x,
+        y: y,
+        r: 0,
+        a: 0.5,
+        speed: 4 + Math.random()*2,
+        decay: 0.985 + Math.random()*0.01,
+        maxR: 60 + Math.random()*60
+    });
 }
 
-updateBackground()
+// pointerdown でタップ／クリックに対応
+canvas.addEventListener("pointerdown", e => {
+    createRipple(e.clientX, e.clientY);
+});
 
-window.matchMedia("(prefers-color-scheme: dark)")
-.addEventListener("change",e=>{
-
-darkMode = e.matches
-updateBackground()
-
-})
-
-
-
-/* 波紋データ */
-
-let ripples = []
-
-function createRipple(x,y){
-
-ripples.push({
-
-x: Math.round(x),
-y: Math.round(y),
-
-radius: 4,
-speed: 5
-
-})
-
-}
-
-
-
-/* タップ */
-
-canvas.addEventListener("mousedown",e=>{
-
-createRipple(e.clientX,e.clientY)
-
-})
-
-canvas.addEventListener("touchstart",e=>{
-
-let t = e.touches[0]
-createRipple(t.clientX,t.clientY)
-
-})
-
-
-
-/* Ilからの波紋（21秒） */
-
+// 自動生成（イルの反応） 21秒ごと
 function autoRipple(){
+    createRipple(width/2, height/2); // 画面中央
+    setTimeout(autoRipple, 21000);
+}
+setTimeout(autoRipple, 21000);
 
-createRipple(
-Math.random()*width,
-Math.random()*height
-)
-
+// 波紋描画
+function drawRipple(r){
+    ctx.globalCompositeOperation = "lighter";
+    ctx.beginPath();
+    const segments = 100;
+    for(let i=0; i<=segments; i++){
+        const angle = i / segments * Math.PI * 2;
+        const distortion = Math.sin(angle*3 + r.r*0.03)*0.3;
+        const x = r.x + Math.cos(angle)*(r.r + distortion);
+        const y = r.y + Math.sin(angle)*(r.r + distortion);
+        if(i===0) ctx.moveTo(x,y);
+        else ctx.lineTo(x,y);
+    }
+    ctx.closePath();
+    const alpha = r.a;
+    const color = darkMode
+        ? `rgba(255,255,255,${alpha})`
+        : `rgba(0,0,0,${alpha})`; // ライトモードは黒
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1;
+    ctx.shadowBlur = 4; // 滲み
+    ctx.shadowColor = color;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.globalCompositeOperation = "source-over";
 }
 
-setInterval(autoRipple,21000)
-
-
-
-/* 更新 */
-
-function update(){
-
-for(let r of ripples){
-
-r.radius += r.speed
-r.radius = Math.round(r.radius)
-
-}
-
-ripples = ripples.filter(r => r.radius < 900)
-
-}
-
-
-
-/* 描画 */
-
-function render(){
-
-ctx.clearRect(0,0,width,height)
-
-ctx.lineWidth = 1
-
-for(let r of ripples){
-
-let alpha = 1/(1+r.radius*0.01)
-
-let color = darkMode
-? `rgba(170,245,255,${alpha})`
-: `rgba(0,0,0,${alpha})`
-
-ctx.strokeStyle = color
-
-ctx.beginPath()
-
-ctx.arc(
-r.x,
-r.y,
-r.radius,
-0,
-Math.PI*2
-)
-
-ctx.stroke()
-
-}
-
-}
-
-
-
-/* アニメーション */
-
+// アニメーション
 function animate(){
-
-update()
-render()
-
-requestAnimationFrame(animate)
-
+    ctx.clearRect(0,0,width,height);
+    for(let i=ripples.length-1; i>=0; i--){
+        let r = ripples[i];
+        drawRipple(r);
+        // 非線形の広がり
+        r.r += r.speed * (1 - r.r/r.maxR);
+        r.a *= r.decay;
+        if(r.a < 0.01) ripples.splice(i,1);
+    }
+    requestAnimationFrame(animate);
 }
 
-animate()
-
+animate();
 </script>
 
 </body>
