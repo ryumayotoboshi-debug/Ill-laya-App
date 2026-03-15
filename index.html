@@ -43,9 +43,7 @@ resize();
 
 
 
-/* =========================
-   ダークモード
-========================= */
+/* ダークモード */
 
 let darkMode=window.matchMedia("(prefers-color-scheme: dark)").matches;
 
@@ -63,43 +61,33 @@ updateBackground();
 
 
 
-/* =========================
-   波紋データ
-========================= */
+/* 波紋 */
 
 let ripples=[];
 
 function createRipple(x,y){
-
-/* 初期細波 */
 
 ripples.push({
 x:x,
 y:y,
 radius:0,
 speed:1.6+Math.random()*0.6,
-alpha:1,
-thickness:1
+alpha:1
 });
-
-/* メイン波紋 */
 
 ripples.push({
 x:x,
 y:y,
 radius:0,
 speed:2.2+Math.random()*1.2,
-alpha:1,
-thickness:1.4
+alpha:1
 });
 
 }
 
 
 
-/* =========================
-   入力
-========================= */
+/* 入力 */
 
 canvas.addEventListener("mousedown",e=>{
 createRipple(e.clientX,e.clientY);
@@ -112,9 +100,7 @@ createRipple(t.clientX,t.clientY);
 
 
 
-/* =========================
-   自動波紋
-========================= */
+/* 自動波紋 */
 
 function autoRipple(){
 
@@ -131,9 +117,7 @@ setTimeout(autoRipple,30000);
 
 
 
-/* =========================
-   更新
-========================= */
+/* 更新 */
 
 function update(){
 
@@ -150,19 +134,36 @@ ripples=ripples.filter(r=>r.alpha>0.02);
 
 
 
-/* =========================
-   描画
-========================= */
+/* 描画 */
 
 function render(){
 
 ctx.clearRect(0,0,width,height);
 
+
+/* 微細水面ゆらぎ */
+
+ctx.save();
+
+let t=performance.now()*0.001;
+
+let offsetX=Math.sin(t*0.7)*0.4;
+let offsetY=Math.cos(t*0.6)*0.4;
+
+ctx.translate(offsetX,offsetY);
+
+
 for(let r of ripples){
 
 let alpha=r.alpha;
 
-/* ライトモード：黒 */
+
+/* 距離で太さ変化 */
+
+let thickness=0.8+r.radius*0.015;
+
+
+/* 色 */
 
 if(!darkMode){
 
@@ -170,23 +171,21 @@ ctx.strokeStyle=`rgba(0,0,0,${alpha})`;
 
 }else{
 
-/* ダークモード：シアン */
-
 ctx.strokeStyle=`rgba(120,220,255,${alpha})`;
 
 }
 
-ctx.lineWidth=r.thickness;
+ctx.lineWidth=thickness;
 
 
-/* メインリング */
+/* メイン波紋 */
 
 ctx.beginPath();
 ctx.arc(r.x,r.y,r.radius,0,Math.PI*2);
 ctx.stroke();
 
 
-/* 細かい波紋リング */
+/* サブリング */
 
 for(let i=1;i<=3;i++){
 
@@ -217,7 +216,7 @@ if(darkMode){
 ctx.beginPath();
 ctx.arc(r.x,r.y,r.radius,0,Math.PI*2);
 
-ctx.lineWidth=r.thickness*3;
+ctx.lineWidth=thickness*3;
 ctx.strokeStyle=`rgba(120,220,255,${alpha*0.18})`;
 ctx.stroke();
 
@@ -225,13 +224,13 @@ ctx.stroke();
 
 }
 
+ctx.restore();
+
 }
 
 
 
-/* =========================
-   アニメーション
-========================= */
+/* アニメーション */
 
 function animate(){
 
