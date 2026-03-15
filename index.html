@@ -33,21 +33,21 @@ let height;
 function resize(){
 width=canvas.width=window.innerWidth;
 height=canvas.height=window.innerHeight;
-init();
 }
 
 window.addEventListener("resize",resize);
+resize();
 
 
 
-/* =====================
+/* =========================
    ダークモード
-===================== */
+========================= */
 
 let darkMode=window.matchMedia("(prefers-color-scheme: dark)").matches;
 
 function updateBackground(){
-document.body.style.background=darkMode?"#000000":"#ffffff";
+document.body.style.background=darkMode ? "#000000" : "#ffffff";
 }
 
 updateBackground();
@@ -60,190 +60,139 @@ updateBackground();
 
 
 
-/* =====================
-   波データ
-===================== */
+/* =========================
+   波紋データ
+========================= */
 
-let current;
-let previous;
+let ripples=[];
 
-function init(){
+function createRipple(x,y){
 
-current=new Float32Array(width*height);
-previous=new Float32Array(width*height);
-
-}
-
-resize();
-
-
-
-/* =====================
-   波生成
-===================== */
-
-function disturb(x,y){
-
-let radius=40;
-
-for(let j=-radius;j<radius;j++){
-for(let i=-radius;i<radius;i++){
-
-let dist=Math.sqrt(i*i+j*j);
-
-if(dist<radius){
-
-let px=x+i;
-let py=y+j;
-
-if(px<0||py<0||px>=width||py>=height) continue;
-
-let index=px+py*width;
-
-current[index]=400*(1-dist/radius);
+ripples.push({
+x:x,
+y:y,
+radius:0,
+speed:2+Math.random()*1.5,
+alpha:1,
+thickness:1.2+Math.random()*1.2
+});
 
 }
 
-}
-}
 
-}
+
+/* =========================
+   入力
+========================= */
 
 canvas.addEventListener("mousedown",e=>{
-disturb(e.clientX,e.clientY);
+createRipple(e.clientX,e.clientY);
 });
 
 canvas.addEventListener("touchstart",e=>{
 let t=e.touches[0];
-disturb(t.clientX,t.clientY);
+createRipple(t.clientX,t.clientY);
 });
 
 
 
-/* =====================
-   波動シミュレーション
-===================== */
+/* =========================
+   自動波紋
+========================= */
 
-function simulate(){
+function autoRipple(){
 
-for(let y=1;y<height-1;y++){
-for(let x=1;x<width-1;x++){
+createRipple(
+Math.random()*width,
+Math.random()*height
+);
 
-let i=x+y*width;
-
-let val=(
-current[i-1]+
-current[i+1]+
-current[i-width]+
-current[i+width]
-)/2-previous[i];
-
-val*=0.995;
-
-previous[i]=val;
-
-}
-}
-
-[current,previous]=[previous,current];
+setTimeout(autoRipple,30000+Math.random()*60000);
 
 }
 
+setTimeout(autoRipple,30000);
 
 
-/* =====================
+
+/* =========================
+   更新
+========================= */
+
+function update(){
+
+for(let r of ripples){
+
+r.radius+=r.speed;
+r.alpha*=0.985;
+
+}
+
+ripples=ripples.filter(r=>r.alpha>0.02);
+
+}
+
+
+
+/* =========================
    描画
-===================== */
+========================= */
 
 function render(){
 
 ctx.clearRect(0,0,width,height);
 
-for(let y=1;y<height-1;y+=3){
-for(let x=1;x<width-1;x+=3){
+for(let r of ripples){
 
-let i=x+y*width;
+let alpha=r.alpha;
 
-let h=current[i];
+/* ライトモード：黒 */
 
-let brightness=Math.abs(h)*0.03;
+if(!darkMode){
 
-if(brightness<0.02) continue;
-
-
-/* 屈折 */
-
-let dx=current[i-1]-current[i+1];
-let dy=current[i-width]-current[i+width];
-
-let px=x+dx*0.05;
-let py=y+dy*0.05;
-
-
-/* Apple Liquid風ハイライト */
-
-let highlight=Math.min(brightness*2,1);
-
-
-/* カラー */
-
-let r,g,b,a;
-
-if(darkMode){
-
-r=120+highlight*120;
-g=200+highlight*40;
-b=255;
+ctx.strokeStyle=`rgba(0,0,0,${alpha})`;
 
 }else{
 
-r=0;
-g=0;
-b=0;
+/* ダークモード：シアン */
+
+ctx.strokeStyle=`rgba(120,220,255,${alpha})`;
 
 }
 
-a=Math.min(brightness,1);
-
-
-/* 波紋線 */
+ctx.lineWidth=r.thickness;
 
 ctx.beginPath();
-ctx.arc(px,py,brightness*20,0,Math.PI*2);
-
-ctx.lineWidth=0.6;
-ctx.strokeStyle=`rgba(${r},${g},${b},${a})`;
+ctx.arc(r.x,r.y,r.radius,0,Math.PI*2);
 ctx.stroke();
 
 
-
-/* 微発光 */
+/* 微発光（ダークモードのみ） */
 
 if(darkMode){
 
-ctx.beginPath();
-ctx.arc(px,py,brightness*30,0,Math.PI*2);
+ctx.lineWidth=r.thickness*3;
+ctx.strokeStyle=`rgba(120,220,255,${alpha*0.2})`;
 
-ctx.lineWidth=2;
-ctx.strokeStyle=`rgba(120,220,255,${a*0.3})`;
+ctx.beginPath();
+ctx.arc(r.x,r.y,r.radius,0,Math.PI*2);
 ctx.stroke();
 
 }
 
 }
-}
 
 }
 
 
 
-/* =====================
+/* =========================
    アニメーション
-===================== */
+========================= */
 
 function animate(){
 
-simulate();
+update();
 render();
 
 requestAnimationFrame(animate);
