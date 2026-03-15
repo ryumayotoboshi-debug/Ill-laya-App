@@ -6,10 +6,28 @@
 
 <style>
 
+:root{
+--bg:#ffffff;
+--ripple-r:0;
+--ripple-g:120;
+--ripple-b:255;
+}
+
+@media (prefers-color-scheme: dark){
+
+:root{
+--bg:#000000;
+--ripple-r:80;
+--ripple-g:200;
+--ripple-b:255;
+}
+
+}
+
 body{
 margin:0;
 overflow:hidden;
-background:#ffffff;
+background:var(--bg);
 }
 
 canvas{
@@ -32,9 +50,17 @@ function resize(){
 canvas.width=window.innerWidth;
 canvas.height=window.innerHeight;
 }
-
 resize();
+
 window.addEventListener("resize",resize);
+
+
+// カラー取得
+const style=getComputedStyle(document.documentElement);
+
+const rippleR=parseInt(style.getPropertyValue('--ripple-r'));
+const rippleG=parseInt(style.getPropertyValue('--ripple-g'));
+const rippleB=parseInt(style.getPropertyValue('--ripple-b'));
 
 
 let ripples=[];
@@ -126,6 +152,7 @@ interference+=Math.sin(dist*0.05-time*0.04)*0.3;
 
 }
 
+
 // 水の歪み
 let distortion=
 Math.sin(a*3+r.radius*0.02+r.phase)*0.6+
@@ -136,6 +163,7 @@ interference;
 // 水面微振動
 let micro=
 Math.sin(time*0.02+a*4)*0.3;
+
 
 let x=r.x+Math.cos(a)*(radius+distortion+micro);
 let y=r.y+Math.sin(a)*(radius+distortion+micro);
@@ -152,11 +180,13 @@ ctx.closePath();
 
 let alpha=r.alpha*(1-i*0.25);
 
+
 // 滲み
-ctx.shadowColor="rgba(0,120,255,0.4)";
+ctx.shadowColor=`rgba(${rippleR},${rippleG},${rippleB},0.5)`;
 ctx.shadowBlur=12;
 
-ctx.strokeStyle=`rgba(0,120,255,${alpha})`;
+
+ctx.strokeStyle=`rgba(${rippleR},${rippleG},${rippleB},${alpha})`;
 
 ctx.lineWidth=0.8;
 
@@ -174,7 +204,6 @@ time++;
 
 ctx.clearRect(0,0,canvas.width,canvas.height);
 
-// 全体ぼかし
 ctx.filter="blur(1.2px)";
 
 for(let i=ripples.length-1;i>=0;i--){
