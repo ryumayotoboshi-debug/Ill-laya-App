@@ -92,7 +92,7 @@ createRipple(t.clientX,t.clientY)
 
 
 
-/* 自動波紋 */
+/* イルからの反応 */
 
 function autoRipple(){
 
@@ -101,11 +101,11 @@ Math.random()*width,
 Math.random()*height
 )
 
-setTimeout(autoRipple,30000+Math.random()*60000)
-
 }
 
-setTimeout(autoRipple,30000)
+/* 21秒ごと */
+
+setInterval(autoRipple,21000)
 
 
 
@@ -149,8 +149,6 @@ return base+offset
 
 
 /* 描画 */
-
-const RINGS=1
 
 function render(){
 
