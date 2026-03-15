@@ -24,15 +24,15 @@ display:block;
 
 <script>
 
-const canvas = document.getElementById("water");
-const ctx = canvas.getContext("2d");
+const canvas=document.getElementById("water");
+const ctx=canvas.getContext("2d");
 
 let width;
 let height;
 
 function resize(){
-width = canvas.width = window.innerWidth;
-height = canvas.height = window.innerHeight;
+width=canvas.width=window.innerWidth;
+height=canvas.height=window.innerHeight;
 init();
 }
 
@@ -40,37 +40,37 @@ window.addEventListener("resize",resize);
 
 
 
-/* =========================
+/* =====================
    ダークモード
-========================= */
+===================== */
 
-let darkMode = window.matchMedia("(prefers-color-scheme: dark)").matches;
+let darkMode=window.matchMedia("(prefers-color-scheme: dark)").matches;
 
 function updateBackground(){
-document.body.style.background = darkMode ? "#000000" : "#ffffff";
+document.body.style.background=darkMode?"#000000":"#ffffff";
 }
 
 updateBackground();
 
 window.matchMedia("(prefers-color-scheme: dark)")
 .addEventListener("change",e=>{
-darkMode = e.matches;
+darkMode=e.matches;
 updateBackground();
 });
 
 
 
-/* =========================
-   水面データ
-========================= */
+/* =====================
+   波データ
+===================== */
 
 let current;
 let previous;
 
 function init(){
 
-current = new Float32Array(width*height);
-previous = new Float32Array(width*height);
+current=new Float32Array(width*height);
+previous=new Float32Array(width*height);
 
 }
 
@@ -78,29 +78,29 @@ resize();
 
 
 
-/* =========================
+/* =====================
    波生成
-========================= */
+===================== */
 
 function disturb(x,y){
 
-let radius = 40;
+let radius=40;
 
 for(let j=-radius;j<radius;j++){
 for(let i=-radius;i<radius;i++){
 
-let dist = Math.sqrt(i*i + j*j);
+let dist=Math.sqrt(i*i+j*j);
 
-if(dist < radius){
+if(dist<radius){
 
-let px = x + i;
-let py = y + j;
+let px=x+i;
+let py=y+j;
 
-if(px<0 || py<0 || px>=width || py>=height) continue;
+if(px<0||py<0||px>=width||py>=height) continue;
 
-let index = px + py*width;
+let index=px+py*width;
 
-current[index] = 180*(1-dist/radius);
+current[index]=400*(1-dist/radius);
 
 }
 
@@ -120,72 +120,69 @@ disturb(t.clientX,t.clientY);
 
 
 
-/* =========================
+/* =====================
    波動シミュレーション
-========================= */
+===================== */
 
 function simulate(){
 
 for(let y=1;y<height-1;y++){
 for(let x=1;x<width-1;x++){
 
-let i = x + y*width;
+let i=x+y*width;
 
-let val = (
-current[i-1] +
-current[i+1] +
-current[i-width] +
+let val=(
+current[i-1]+
+current[i+1]+
+current[i-width]+
 current[i+width]
-)/2 - previous[i];
+)/2-previous[i];
 
-val *= 0.995;
+val*=0.995;
 
-previous[i] = val;
-
-}
-}
-
-[current,previous] = [previous,current];
+previous[i]=val;
 
 }
+}
+
+[current,previous]=[previous,current];
+
+}
 
 
 
-/* =========================
+/* =====================
    描画
-========================= */
+===================== */
 
 function render(){
 
 ctx.clearRect(0,0,width,height);
 
-for(let y=2;y<height-2;y+=2){
-for(let x=2;x<width-2;x+=2){
+for(let y=1;y<height-1;y+=3){
+for(let x=1;x<width-1;x+=3){
 
-let i = x + y*width;
+let i=x+y*width;
 
-/* 法線（波の勾配） */
+let h=current[i];
 
-let dx = current[i-1] - current[i+1];
-let dy = current[i-width] - current[i+width];
+let brightness=Math.abs(h)*0.03;
 
-let gradient = Math.sqrt(dx*dx + dy*dy);
+if(brightness<0.02) continue;
 
 
 /* 屈折 */
 
-let refX = x + dx*0.08;
-let refY = y + dy*0.08;
+let dx=current[i-1]-current[i+1];
+let dy=current[i-width]-current[i+width];
+
+let px=x+dx*0.05;
+let py=y+dy*0.05;
 
 
-/* フレネル風ハイライト */
+/* Apple Liquid風ハイライト */
 
-let highlight = Math.pow(Math.min(gradient*0.03,1),2);
-
-
-/* Apple Liquid UI風グロー */
-
-let glow = gradient * 0.15;
+let highlight=Math.min(brightness*2,1);
 
 
 /* カラー */
@@ -194,61 +191,41 @@ let r,g,b,a;
 
 if(darkMode){
 
-r = 120 + highlight*100;
-g = 200 + highlight*40;
-b = 255;
+r=120+highlight*120;
+g=200+highlight*40;
+b=255;
 
 }else{
 
-r = 0;
-g = 0;
-b = 0;
+r=0;
+g=0;
+b=0;
 
 }
 
-a = Math.min(gradient*4,1);
+a=Math.min(brightness,1);
 
 
-/* 波紋線（細かいリング） */
-
-for(let k=0;k<3;k++){
+/* 波紋線 */
 
 ctx.beginPath();
+ctx.arc(px,py,brightness*20,0,Math.PI*2);
 
-ctx.arc(
-refX,
-refY,
-gradient*8 + k*2,
-0,
-Math.PI*2
-);
-
-ctx.lineWidth = 0.6;
-
-if(darkMode){
-
-ctx.strokeStyle = `rgba(${r},${g},${b},${a*0.3})`;
-
-}else{
-
-ctx.strokeStyle = `rgba(0,0,0,${a*0.3})`;
-
-}
-
+ctx.lineWidth=0.6;
+ctx.strokeStyle=`rgba(${r},${g},${b},${a})`;
 ctx.stroke();
 
-}
 
 
-/* グロー */
+/* 微発光 */
 
 if(darkMode){
 
 ctx.beginPath();
-ctx.arc(refX,refY,gradient*10,0,Math.PI*2);
+ctx.arc(px,py,brightness*30,0,Math.PI*2);
 
-ctx.lineWidth = 2;
-ctx.strokeStyle = `rgba(120,220,255,${glow})`;
+ctx.lineWidth=2;
+ctx.strokeStyle=`rgba(120,220,255,${a*0.3})`;
 ctx.stroke();
 
 }
@@ -260,9 +237,9 @@ ctx.stroke();
 
 
 
-/* =========================
+/* =====================
    アニメーション
-========================= */
+===================== */
 
 function animate(){
 
