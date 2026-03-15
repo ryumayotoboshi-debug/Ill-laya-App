@@ -50,16 +50,22 @@ updateBackground();
 
 
 // 波紋カラー
-function rippleColor(alpha){
+function rippleBright(alpha){
 
 if(darkMode){
-
-return `rgba(220,240,255,${alpha})`;
-
+return `rgba(200,255,255,${alpha})`;
 }else{
-
 return `rgba(0,120,255,${alpha})`;
+}
 
+}
+
+function rippleDark(alpha){
+
+if(darkMode){
+return `rgba(120,200,255,${alpha*0.6})`;
+}else{
+return `rgba(0,80,200,${alpha*0.6})`;
 }
 
 }
@@ -132,16 +138,15 @@ function drawRipple(r){
 for(let i=0;i<r.rings;i++){
 
 let delay=i*18;
-
 let radius=r.radius-delay;
 
 if(radius<=0) continue;
 
-ctx.beginPath();
+let points=[];
 
 for(let a=0;a<Math.PI*2;a+=0.08){
 
-// 波紋干渉
+// 干渉
 let interference=0;
 
 for(let other of ripples){
@@ -156,7 +161,7 @@ interference+=Math.sin(dist*0.05-time*0.04)*0.25;
 }
 
 
-// 水歪み
+// 歪み
 let distortion=
 Math.sin(a*3+r.radius*0.02+r.phase)*0.6+
 Math.sin(a*7+r.radius*0.015)*0.25+
@@ -170,26 +175,68 @@ let micro=Math.sin(time*0.02+a*4)*0.3;
 let x=r.x+Math.cos(a)*(radius+distortion+micro);
 let y=r.y+Math.sin(a)*(radius+distortion+micro);
 
-if(a===0){
+points.push({x,y,a});
+
+}
+
+let alpha=r.alpha*(1-i*0.25);
+
+
+// 山（明るい線）
+ctx.beginPath();
+
+points.forEach((p,index)=>{
+
+let offset=1.2;
+
+let x=p.x+Math.cos(p.a)*offset;
+let y=p.y+Math.sin(p.a)*offset;
+
+if(index===0){
 ctx.moveTo(x,y);
 }else{
 ctx.lineTo(x,y);
 }
 
-}
+});
 
 ctx.closePath();
 
-let alpha=r.alpha*(1-i*0.25);
+ctx.shadowColor=rippleBright(0.9);
+ctx.shadowBlur=20;
+
+ctx.strokeStyle=rippleBright(alpha);
+
+ctx.lineWidth=1;
+
+ctx.stroke();
 
 
-// 滲み
-ctx.shadowColor=rippleColor(0.7);
-ctx.shadowBlur=18;
+// 谷（暗い線）
+ctx.beginPath();
 
-ctx.strokeStyle=rippleColor(alpha);
+points.forEach((p,index)=>{
 
-ctx.lineWidth=0.9;
+let offset=-1.2;
+
+let x=p.x+Math.cos(p.a)*offset;
+let y=p.y+Math.sin(p.a)*offset;
+
+if(index===0){
+ctx.moveTo(x,y);
+}else{
+ctx.lineTo(x,y);
+}
+
+});
+
+ctx.closePath();
+
+ctx.shadowBlur=0;
+
+ctx.strokeStyle=rippleDark(alpha);
+
+ctx.lineWidth=1;
 
 ctx.stroke();
 
@@ -205,7 +252,7 @@ time++;
 
 ctx.clearRect(0,0,canvas.width,canvas.height);
 
-ctx.filter="blur(1.2px)";
+ctx.filter="blur(1.1px)";
 
 for(let i=ripples.length-1;i>=0;i--){
 
