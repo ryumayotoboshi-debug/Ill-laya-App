@@ -25,7 +25,7 @@ display:block;
 <script>
 
 const canvas=document.getElementById("water");
-const ctx=canvas.getContext("2d",{alpha:true});
+const ctx=canvas.getContext("2d");
 
 let width;
 let height;
@@ -33,10 +33,10 @@ let height;
 function resize(){
 width=canvas.width=window.innerWidth;
 height=canvas.height=window.innerHeight;
-init();
 }
 
 window.addEventListener("resize",resize);
+resize();
 
 
 
@@ -61,67 +61,41 @@ updateBackground();
 
 
 /* =========================
-   水面データ
+   波紋データ
 ========================= */
 
-let current;
-let previous;
-let age;
+let ripples=[];
 
-function init(){
 
-current=new Float32Array(width*height);
-previous=new Float32Array(width*height);
-age=new Float32Array(width*height);
+
+function createRipple(x,y){
+
+ripples.push({
+
+x:x,
+y:y,
+radius:0,
+speed:2+Math.random()*1.5,
+alpha:1,
+thickness:2+Math.random()*2
+
+});
 
 }
-
-resize();
 
 
 
 /* =========================
-   波生成
+   入力
 ========================= */
 
-function disturb(x,y){
-
-let radius=40+Math.random()*30;
-
-for(let j=-radius;j<radius;j++){
-for(let i=-radius;i<radius;i++){
-
-let dx=i;
-let dy=j;
-
-let dist=Math.sqrt(dx*dx+dy*dy);
-
-if(dist<radius){
-
-let px=x+i;
-let py=y+j;
-
-if(px<0||py<0||px>=width||py>=height) continue;
-
-let index=px+py*width;
-
-current[index]=200*(1-dist/radius);
-age[index]=0;
-
-}
-
-}
-}
-
-}
-
 canvas.addEventListener("mousedown",e=>{
-disturb(e.clientX,e.clientY);
+createRipple(e.clientX,e.clientY);
 });
 
 canvas.addEventListener("touchstart",e=>{
 let t=e.touches[0];
-disturb(t.clientX,t.clientY);
+createRipple(t.clientX,t.clientY);
 });
 
 
@@ -132,7 +106,7 @@ disturb(t.clientX,t.clientY);
 
 function autoRipple(){
 
-disturb(
+createRipple(
 Math.random()*width,
 Math.random()*height
 );
@@ -146,37 +120,19 @@ setTimeout(autoRipple,30000);
 
 
 /* =========================
-   波動シミュレーション
+   更新
 ========================= */
 
-function simulate(){
+function update(){
 
-for(let y=1;y<height-1;y++){
-for(let x=1;x<width-1;x++){
+for(let r of ripples){
 
-let i=x+y*width;
-
-let val=(
-current[i-1]+
-current[i+1]+
-current[i-width]+
-current[i+width]
-)/2-previous[i];
-
-val*=0.996;
-
-let damping=1-(age[i]*0.0003);
-if(damping<0.8)damping=0.8;
-
-val*=damping;
-
-previous[i]=val;
-age[i]++;
+r.radius+=r.speed;
+r.alpha*=0.985;
 
 }
-}
 
-[current,previous]=[previous,current];
+ripples=ripples.filter(r=>r.alpha>0.02);
 
 }
 
@@ -188,65 +144,49 @@ age[i]++;
 
 function render(){
 
-let img=ctx.createImageData(width,height);
-let data=img.data;
+ctx.clearRect(0,0,width,height);
 
-for(let y=1;y<height-1;y++){
-for(let x=1;x<width-1;x++){
+for(let r of ripples){
 
-let i=x+y*width;
+let alpha=r.alpha;
 
-let dx=current[i-1]-current[i+1];
-let dy=current[i-width]-current[i+width];
+if(darkMode){
 
-let gradient=Math.sqrt(dx*dx+dy*dy);
+ctx.strokeStyle=`rgba(120,220,255,${alpha})`;
 
+}else{
 
-/* リング強調 */
+ctx.strokeStyle=`rgba(60,140,255,${alpha})`;
 
-let ring=Math.min(gradient*6,1);
+}
+
+ctx.lineWidth=r.thickness;
+
+ctx.beginPath();
+ctx.arc(r.x,r.y,r.radius,0,Math.PI*2);
+ctx.stroke();
+
 
 
 /* 微発光 */
 
-let glow=ring*0.5;
-
-
-/* カラー */
-
-let r,g,b;
+ctx.lineWidth=r.thickness*3;
 
 if(darkMode){
 
-r=120+glow*120;
-g=180+glow*60;
-b=255;
+ctx.strokeStyle=`rgba(120,220,255,${alpha*0.2})`;
 
 }else{
 
-r=60+glow*60;
-g=120+glow*40;
-b=255;
+ctx.strokeStyle=`rgba(80,160,255,${alpha*0.2})`;
 
 }
 
-
-/* アルファ */
-
-let a=Math.max(ring*220,10);
-
-
-let index=(x+y*width)*4;
-
-data[index]=r;
-data[index+1]=g;
-data[index+2]=b;
-data[index+3]=a;
+ctx.beginPath();
+ctx.arc(r.x,r.y,r.radius,0,Math.PI*2);
+ctx.stroke();
 
 }
-}
-
-ctx.putImageData(img,0,0);
 
 }
 
@@ -258,7 +198,7 @@ ctx.putImageData(img,0,0);
 
 function animate(){
 
-simulate();
+update();
 render();
 
 requestAnimationFrame(animate);
