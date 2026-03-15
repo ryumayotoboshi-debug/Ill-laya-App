@@ -86,10 +86,14 @@ function drawRipple(r){
         else ctx.lineTo(x,y);
     }
     ctx.closePath();
-    const alpha = r.a * 1.5; // 透明度を1.5倍に
+
+    // 透明度を少し濃く
+    const alpha = r.a * 1.8;
+
     const color = darkMode
         ? `rgba(255,255,255,${alpha})`
         : `rgba(0,0,0,${alpha})`; // ライトモードは黒
+
     ctx.strokeStyle = color;
     ctx.lineWidth = 1;
     ctx.shadowBlur = 4; // 滲み
@@ -105,7 +109,7 @@ function animate(){
     for(let i=ripples.length-1; i>=0; i--){
         let r = ripples[i];
         drawRipple(r);
-        // 非線形の広がり
+        // 非線形の広がり（初速早く、後半ゆっくり）
         r.r += r.speed * (1 - r.r/r.maxR);
         r.a *= r.decay;
         if(r.a < 0.01 || r.r > r.maxR) ripples.splice(i,1);
