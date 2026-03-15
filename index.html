@@ -16,6 +16,7 @@ canvas{
 display:block;
 }
 </style>
+
 </head>
 
 <body>
@@ -71,8 +72,7 @@ ripples.push({
 x:x,
 y:y,
 radius:0,
-speed:5+Math.random()*1.2,
-seed:Math.random()*1000
+speed:5+Math.random()*1.2
 })
 
 }
@@ -148,48 +148,9 @@ return base+offset
 
 
 
-/* 円描画 */
-
-function drawCircle(cx,cy,radius,seed){
-
-let steps=Math.floor(40+radius*0.6)
-
-ctx.beginPath()
-
-for(let i=0;i<=steps;i++){
-
-let a=(i/steps)*Math.PI*2
-
-let noise=Math.sin(a*6+seed)*radius*0.01
-
-let r=radius+noise
-
-let x=cx+Math.cos(a)*r
-let y=cy+Math.sin(a)*r
-
-let ir=interference(x,y,r)
-
-x=cx+Math.cos(a)*ir
-y=cy+Math.sin(a)*ir
-
-if(i===0){
-ctx.moveTo(x,y)
-}else{
-ctx.lineTo(x,y)
-}
-
-}
-
-ctx.closePath()
-ctx.stroke()
-
-}
-
-
-
 /* 描画 */
 
-const RINGS=3
+const RINGS=1
 
 function render(){
 
@@ -218,24 +179,11 @@ ctx.shadowColor=color
 
 let thickness=1.1+r.radius*0.01
 
-let spacing=8+r.radius*0.02
+ctx.lineWidth=thickness
 
-for(let i=0;i<RINGS;i++){
-
-let rad=r.radius-i*spacing
-
-if(rad<=0)continue
-
-ctx.lineWidth=thickness*(1-i*0.25)
-
-drawCircle(
-r.x,
-r.y,
-rad,
-r.seed+i*3
-)
-
-}
+ctx.beginPath()
+ctx.arc(r.x,r.y,r.radius,0,Math.PI*2)
+ctx.stroke()
 
 }
 
