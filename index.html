@@ -70,7 +70,7 @@ function createRipple(x,y,type){
 ripples.push({
 x:x,
 y:y,
-radius:0,
+radius:1,
 speed:5+Math.random()*1.2,
 type:type
 })
@@ -141,6 +141,8 @@ Math.cos(t*0.6)*0.4
 
 for(let r of ripples){
 
+if(r.radius<2) continue
+
 let alpha=1/(1+r.radius*0.008)
 
 let color=darkMode
@@ -149,10 +151,9 @@ let color=darkMode
 
 ctx.strokeStyle=color
 
-/* 発光削除 */
 ctx.shadowBlur=0
 
-let thickness=1+r.radius*0.008
+let thickness=Math.max(0.6,r.radius*0.006)
 
 ctx.lineWidth=thickness
 
