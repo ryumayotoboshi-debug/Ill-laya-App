@@ -14,6 +14,8 @@ transition:background 0.3s;
 
 canvas{
 display:block;
+width:100vw;
+height:100vh;
 }
 </style>
 </head>
@@ -27,15 +29,26 @@ display:block;
 const canvas=document.getElementById("water")
 const ctx=canvas.getContext("2d")
 
-ctx.lineCap="round"
-ctx.lineJoin="round"
-
 let width
 let height
 
+/* Retina対応 */
+
+const DPR = window.devicePixelRatio || 1
+
 function resize(){
-width=canvas.width=window.innerWidth
-height=canvas.height=window.innerHeight
+
+width = window.innerWidth
+height = window.innerHeight
+
+canvas.style.width = width+"px"
+canvas.style.height = height+"px"
+
+canvas.width = width * DPR
+canvas.height = height * DPR
+
+ctx.setTransform(DPR,0,0,DPR,0,0)
+
 }
 
 window.addEventListener("resize",resize)
@@ -45,27 +58,19 @@ resize()
 
 /* ダークモード */
 
-let darkMode=window.matchMedia("(prefers-color-scheme: dark)").matches
+let darkMode = window.matchMedia("(prefers-color-scheme: dark)").matches
 
 function updateBackground(){
-document.body.style.background=darkMode?"#000000":"#ffffff"
+document.body.style.background = darkMode ? "#000000" : "#ffffff"
 }
 
 updateBackground()
 
 window.matchMedia("(prefers-color-scheme: dark)")
 .addEventListener("change",e=>{
-darkMode=e.matches
+darkMode = e.matches
 updateBackground()
 })
-
-
-
-/* ピクセルスナップ */
-
-function snap(v){
-return Math.round(v)+0.5
-}
 
 
 
@@ -79,8 +84,7 @@ ripples.push({
 x:x,
 y:y,
 radius:0,
-speed:5+Math.random()*1.2,
-type:type
+speed:6+Math.random()*1.5
 })
 
 }
@@ -121,12 +125,10 @@ setInterval(autoRipple,21000)
 function update(){
 
 for(let r of ripples){
-
-r.radius+=r.speed
-
+r.radius += r.speed
 }
 
-ripples=ripples.filter(r=>r.radius<900)
+ripples = ripples.filter(r=>r.radius<900)
 
 }
 
@@ -138,9 +140,9 @@ function render(){
 
 ctx.clearRect(0,0,width,height)
 
-ctx.save()
-
 let t=performance.now()*0.001
+
+ctx.save()
 
 ctx.translate(
 Math.sin(t*0.7)*0.4,
@@ -149,25 +151,22 @@ Math.cos(t*0.6)*0.4
 
 for(let r of ripples){
 
-let alpha=1/(1+r.radius*0.008)
+let alpha = 1/(1+r.radius*0.008)
 
-let color=darkMode
+let color = darkMode
 ?`rgba(170,245,255,${alpha})`
 :`rgba(0,0,0,${alpha})`
 
-ctx.strokeStyle=color
-ctx.shadowBlur=0
+ctx.strokeStyle = color
 
-let thickness=Math.max(0.6,r.radius*0.006)
-
-ctx.lineWidth=thickness
+ctx.lineWidth = 1.2
 
 ctx.beginPath()
 
 ctx.arc(
-snap(r.x),
-snap(r.y),
-snap(r.radius),
+r.x,
+r.y,
+r.radius,
 0,
 Math.PI*2
 )
