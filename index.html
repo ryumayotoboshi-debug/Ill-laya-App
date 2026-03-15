@@ -5,6 +5,7 @@
 <title>Ill/Raya touch</title>
 
 <style>
+
 body{
 margin:0;
 overflow:hidden;
@@ -15,13 +16,7 @@ canvas{
 display:block;
 }
 
-@media (prefers-color-scheme: dark){
-body{
-background:#000000;
-}
-}
 </style>
-
 </head>
 
 <body>
@@ -36,135 +31,132 @@ const ctx=canvas.getContext("2d");
 canvas.width=window.innerWidth;
 canvas.height=window.innerHeight;
 
-const isDarkMode=window.matchMedia("(prefers-color-scheme: dark)").matches;
+let ripples=[];
+let time=0;
 
-const width=canvas.width;
-const height=canvas.height;
 
-const damping=0.995;
+// 波紋生成
+function createRipple(x,y){
 
-let current=new Float32Array(width*height);
-let previous=new Float32Array(width*height);
+ripples.push({
 
-const image=ctx.createImageData(width,height);
-const data=image.data;
+x:x,
+y:y,
+r:0,
 
-function index(x,y){
-return x+y*width;
-}
+speed:5+Math.random()*2,
+alpha:0.35,
+decay:0.985,
 
-function disturb(x,y){
+phase:Math.random()*Math.PI
 
-let radius=6;
-
-for(let j=-radius;j<radius;j++){
-for(let i=-radius;i<radius;i++){
-
-let dx=x+i;
-let dy=y+j;
-
-if(dx>1 && dx<width-1 && dy>1 && dy<height-1){
-
-previous[index(dx,dy)]+=200;
+});
 
 }
 
-}
-}
 
-}
-
+// 入力
 canvas.addEventListener("mousedown",e=>{
-disturb(e.clientX,e.clientY);
+createRipple(e.clientX,e.clientY);
 });
 
 canvas.addEventListener("touchstart",e=>{
 let t=e.touches[0];
-disturb(t.clientX,t.clientY);
+createRipple(t.clientX,t.clientY);
 });
 
-function randomRipple(){
 
-let x=Math.random()*width;
-let y=Math.random()*height;
+// 自動波紋
+function autoRipple(){
 
-disturb(x,y);
+let x=Math.random()*canvas.width;
+let y=Math.random()*canvas.height;
+
+createRipple(x,y);
 
 let next=40000+Math.random()*80000;
 
-setTimeout(randomRipple,next);
+setTimeout(autoRipple,next);
 
 }
 
-setTimeout(randomRipple,30000);
+setTimeout(autoRipple,30000);
 
-function update(){
 
-for(let y=1;y<height-1;y++){
-for(let x=1;x<width-1;x++){
+// 波紋描画
+function drawRipple(r){
 
-let i=index(x,y);
+ctx.globalCompositeOperation="lighter";
 
-current[i]=(
-previous[i-1]+
-previous[i+1]+
-previous[i-width]+
-previous[i+width]
-)/2-current[i];
+for(let i=0;i<4;i++){
 
-current[i]*=damping;
+let delay=i*12;
+let radius=r.r-delay;
 
-}
-}
+if(radius>0){
 
-let temp=previous;
-previous=current;
-current=temp;
+ctx.beginPath();
 
-}
+for(let a=0;a<Math.PI*2;a+=0.12){
 
-function draw(){
+let distortion=
+Math.sin(a*3+r.r*0.03+r.phase)*0.4+
+Math.sin(a*7+r.r*0.02)*0.15;
 
-for(let y=1;y<height-1;y++){
-for(let x=1;x<width-1;x++){
+let x=r.x+Math.cos(a)*(radius+distortion);
+let y=r.y+Math.sin(a)*(radius+distortion);
 
-let i=index(x,y);
-
-let dx=previous[i-1]-previous[i+1];
-let dy=previous[i-width]-previous[i+width];
-
-let shade=(dx+dy)*0.5;
-
-let color;
-
-if(isDarkMode){
-
-color=220+shade;
-
+if(a===0){
+ctx.moveTo(x,y);
 }else{
-
-color=150+shade;
+ctx.lineTo(x,y);
+}
 
 }
 
-let p=i*4;
+ctx.closePath();
 
-data[p]=color;
-data[p+1]=isDarkMode?color:color+40;
-data[p+2]=isDarkMode?color:255;
-data[p+3]=80;
+ctx.strokeStyle=`rgba(0,120,255,${r.alpha*(1-i*0.25)})`;
 
-}
-}
+ctx.lineWidth=0.8;
 
-ctx.putImageData(image,0,0);
+ctx.stroke();
 
 }
 
+}
+
+ctx.globalCompositeOperation="source-over";
+
+}
+
+
+// アニメーション
 function animate(){
 
-update();
-draw();
+ctx.clearRect(0,0,canvas.width,canvas.height);
+
+ctx.filter="blur(1.4px)";
+
+for(let i=ripples.length-1;i>=0;i--){
+
+let r=ripples[i];
+
+drawRipple(r);
+
+r.r+=r.speed;
+
+r.speed*=0.985;
+
+r.alpha*=r.decay;
+
+if(r.alpha<0.02){
+ripples.splice(i,1);
+}
+
+}
+
+ctx.filter="none";
 
 requestAnimationFrame(animate);
 
