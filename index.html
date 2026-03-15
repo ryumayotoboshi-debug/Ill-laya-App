@@ -6,28 +6,11 @@
 
 <style>
 
-:root{
---bg:#ffffff;
---ripple-r:0;
---ripple-g:120;
---ripple-b:255;
-}
-
-@media (prefers-color-scheme: dark){
-
-:root{
---bg:#000000;
---ripple-r:80;
---ripple-g:200;
---ripple-b:255;
-}
-
-}
-
 body{
 margin:0;
 overflow:hidden;
-background:var(--bg);
+background:#ffffff;
+transition:background 0.3s;
 }
 
 canvas{
@@ -51,16 +34,37 @@ canvas.width=window.innerWidth;
 canvas.height=window.innerHeight;
 }
 resize();
-
 window.addEventListener("resize",resize);
 
 
-// カラー取得
-const style=getComputedStyle(document.documentElement);
+// ダークモード判定
+let darkMode=window.matchMedia("(prefers-color-scheme: dark)").matches;
 
-const rippleR=parseInt(style.getPropertyValue('--ripple-r'));
-const rippleG=parseInt(style.getPropertyValue('--ripple-g'));
-const rippleB=parseInt(style.getPropertyValue('--ripple-b'));
+
+// 背景色
+function updateBackground(){
+
+document.body.style.background=darkMode?"#000000":"#ffffff";
+
+}
+
+updateBackground();
+
+
+// 波紋色取得
+function rippleColor(alpha){
+
+if(darkMode){
+
+return `rgba(255,255,255,${alpha})`;
+
+}else{
+
+return `rgba(0,120,255,${alpha})`;
+
+}
+
+}
 
 
 let ripples=[];
@@ -153,16 +157,15 @@ interference+=Math.sin(dist*0.05-time*0.04)*0.3;
 }
 
 
-// 水の歪み
+// 歪み
 let distortion=
 Math.sin(a*3+r.radius*0.02+r.phase)*0.6+
 Math.sin(a*7+r.radius*0.015)*0.25+
 interference;
 
 
-// 水面微振動
-let micro=
-Math.sin(time*0.02+a*4)*0.3;
+// 微振動
+let micro=Math.sin(time*0.02+a*4)*0.3;
 
 
 let x=r.x+Math.cos(a)*(radius+distortion+micro);
@@ -182,11 +185,10 @@ let alpha=r.alpha*(1-i*0.25);
 
 
 // 滲み
-ctx.shadowColor=`rgba(${rippleR},${rippleG},${rippleB},0.5)`;
+ctx.shadowColor=rippleColor(0.5);
 ctx.shadowBlur=12;
 
-
-ctx.strokeStyle=`rgba(${rippleR},${rippleG},${rippleB},${alpha})`;
+ctx.strokeStyle=rippleColor(alpha);
 
 ctx.lineWidth=0.8;
 
@@ -233,6 +235,17 @@ requestAnimationFrame(animate);
 }
 
 animate();
+
+
+// OSテーマ変更検知
+window.matchMedia("(prefers-color-scheme: dark)")
+.addEventListener("change",e=>{
+
+darkMode=e.matches;
+
+updateBackground();
+
+});
 
 </script>
 
