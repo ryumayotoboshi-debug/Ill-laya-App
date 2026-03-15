@@ -66,13 +66,14 @@ updateBackground()
 
 let ripples=[]
 
-function createRipple(x,y){
+function createRipple(x,y,type){
 
 ripples.push({
 x:x,
 y:y,
 radius:0,
-speed:5+Math.random()*1.2
+speed:5+Math.random()*1.2,
+type:type
 })
 
 }
@@ -82,12 +83,12 @@ speed:5+Math.random()*1.2
 /* 入力 */
 
 canvas.addEventListener("mousedown",e=>{
-createRipple(e.clientX,e.clientY)
+createRipple(e.clientX,e.clientY,"user")
 })
 
 canvas.addEventListener("touchstart",e=>{
 let t=e.touches[0]
-createRipple(t.clientX,t.clientY)
+createRipple(t.clientX,t.clientY,"user")
 })
 
 
@@ -98,7 +99,8 @@ function autoRipple(){
 
 createRipple(
 Math.random()*width,
-Math.random()*height
+Math.random()*height,
+"auto"
 )
 
 }
@@ -132,6 +134,8 @@ function interference(x,y,base){
 let offset=0
 
 for(let r of ripples){
+
+if(r.type!=="auto") continue
 
 let dx=x-r.x
 let dy=y-r.y
@@ -179,9 +183,27 @@ let thickness=1.1+r.radius*0.01
 
 ctx.lineWidth=thickness
 
+/* userは真円 */
+
+if(r.type==="user"){
+
 ctx.beginPath()
 ctx.arc(r.x,r.y,r.radius,0,Math.PI*2)
 ctx.stroke()
+
+}
+
+/* autoは干渉 */
+
+else{
+
+let rad=interference(r.x,r.y,r.radius)
+
+ctx.beginPath()
+ctx.arc(r.x,r.y,rad,0,Math.PI*2)
+ctx.stroke()
+
+}
 
 }
 
