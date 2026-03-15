@@ -5,16 +5,17 @@
 <title>Ill/Raya touch</title>
 
 <style>
+
 body{
 margin:0;
 overflow:hidden;
 background:#ffffff;
-transition:background 0.3s;
 }
 
 canvas{
 display:block;
 }
+
 </style>
 </head>
 
@@ -31,49 +32,45 @@ let width;
 let height;
 
 function resize(){
+
 width=canvas.width=window.innerWidth;
 height=canvas.height=window.innerHeight;
+
 init();
+
 }
 
 window.addEventListener("resize",resize);
 
 
-// ダークモード
-let darkMode=window.matchMedia("(prefers-color-scheme: dark)").matches;
 
-function updateBackground(){
-document.body.style.background=darkMode?"#000":"#fff";
-}
-
-updateBackground();
-
-window.matchMedia("(prefers-color-scheme: dark)")
-.addEventListener("change",e=>{
-darkMode=e.matches;
-updateBackground();
-});
-
-
-// ===== 水面データ =====
+/* =========================
+   水面データ
+========================= */
 
 let current;
 let previous;
+let age;
 
 function init(){
 
 current=new Float32Array(width*height);
 previous=new Float32Array(width*height);
+age=new Float32Array(width*height);
 
 }
 
 resize();
 
 
-// 波発生
+
+/* =========================
+   波生成
+========================= */
+
 function disturb(x,y){
 
-let radius=20+Math.random()*40;
+let radius=25+Math.random()*40;
 
 for(let j=-radius;j<radius;j++){
 for(let i=-radius;i<radius;i++){
@@ -85,23 +82,25 @@ let dist=Math.sqrt(dx*dx+dy*dy);
 
 if(dist<radius){
 
-let index=(x+i)+(y+j)*width;
+let px=x+i;
+let py=y+j;
 
-if(index>0 && index<current.length){
+if(px<0||py<0||px>=width||py>=height) continue;
 
-current[index]=150*(1-dist/radius);
+let index=px+py*width;
 
+current[index]=180*(1-dist/radius);
+age[index]=0;
+
+}
+
+}
 }
 
 }
 
-}
-}
-
-}
 
 
-// 入力
 canvas.addEventListener("mousedown",e=>{
 disturb(e.clientX,e.clientY);
 });
@@ -112,7 +111,11 @@ disturb(t.clientX,t.clientY);
 });
 
 
-// 自動波紋
+
+/* =========================
+   自動波紋
+========================= */
+
 function autoRipple(){
 
 disturb(
@@ -127,7 +130,11 @@ setTimeout(autoRipple,30000+Math.random()*60000);
 setTimeout(autoRipple,30000);
 
 
-// 波動計算
+
+/* =========================
+   波動シミュレーション
+========================= */
+
 function simulate(){
 
 for(let y=1;y<height-1;y++){
@@ -145,7 +152,16 @@ current[i+width]
 
 val*=0.995;
 
+/* スペクトル減衰 */
+
+let damping=1-(age[i]*0.0004);
+if(damping<0.7)damping=0.7;
+
+val*=damping;
+
 previous[i]=val;
+
+age[i]++;
 
 }
 
@@ -156,7 +172,11 @@ previous[i]=val;
 }
 
 
-// 描画（屈折）
+
+/* =========================
+   描画
+========================= */
+
 function render(){
 
 let img=ctx.createImageData(width,height);
@@ -168,33 +188,56 @@ for(let x=1;x<width-1;x++){
 
 let i=x+y*width;
 
+/* 法線 */
+
 let dx=current[i-1]-current[i+1];
 let dy=current[i-width]-current[i+width];
 
-let offsetX=Math.floor(x+dx*0.05);
-let offsetY=Math.floor(y+dy*0.05);
+let nx=dx*0.02;
+let ny=dy*0.02;
+let nz=1;
 
-offsetX=Math.max(0,Math.min(width-1,offsetX));
-offsetY=Math.max(0,Math.min(height-1,offsetY));
+/* 屈折 */
+
+let offsetX=Math.floor(x+nx*10);
+let offsetY=Math.floor(y+ny*10);
+
+if(offsetX<0)offsetX=0;
+if(offsetY<0)offsetY=0;
+if(offsetX>=width)offsetX=width-1;
+if(offsetY>=height)offsetY=height-1;
+
+
+/* フレネル反射 */
+
+let fresnel=Math.pow(1-Math.abs(nz),3);
+
+
+/* subsurface scattering */
+
+let sss=Math.abs(current[i])*0.03;
+
+
+/* 環境反射（簡易） */
+
+let reflection=180*fresnel;
+
+
+/* 色 */
+
+let r=220+reflection;
+let g=240+sss;
+let b=255;
+
+if(r>255)r=255;
+if(g>255)g=255;
+if(b>255)b=255;
 
 let index=(x+y*width)*4;
 
-let intensity=Math.abs(current[i])*0.6;
-
-if(darkMode){
-
-data[index]=200+intensity;
-data[index+1]=255;
-data[index+2]=255;
-
-}else{
-
-data[index]=0;
-data[index+1]=120+intensity;
-data[index+2]=255;
-
-}
-
+data[index]=r;
+data[index+1]=g;
+data[index+2]=b;
 data[index+3]=255;
 
 }
@@ -206,7 +249,11 @@ ctx.putImageData(img,0,0);
 }
 
 
-// アニメーション
+
+/* =========================
+   アニメーション
+========================= */
+
 function animate(){
 
 simulate();
