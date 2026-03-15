@@ -37,14 +37,14 @@ resize();
 window.addEventListener("resize",resize);
 
 
-// 波紋配列
 let ripples=[];
+let time=0;
 
 
 // 波紋生成
 function createRipple(x,y){
 
-let maxSize=120+Math.random()*180;
+let maxSize=120+Math.random()*200;
 
 ripples.push({
 
@@ -57,7 +57,7 @@ speed:3+Math.random()*3,
 
 alpha:0.35,
 
-decay:0.985,
+decay:0.986,
 
 max:maxSize,
 
@@ -89,7 +89,7 @@ let y=Math.random()*canvas.height;
 
 createRipple(x,y);
 
-let next=40000+Math.random()*80000;
+let next=30000+Math.random()*60000;
 
 setTimeout(autoRipple,next);
 
@@ -101,27 +101,44 @@ setTimeout(autoRipple,30000);
 // 波紋描画
 function drawRipple(r){
 
-ctx.globalCompositeOperation="lighter";
-
 for(let i=0;i<r.rings;i++){
 
 let delay=i*16;
-
 let radius=r.radius-delay;
 
-if(radius>0){
+if(radius<=0) continue;
 
 ctx.beginPath();
 
-for(let a=0;a<Math.PI*2;a+=0.1){
+for(let a=0;a<Math.PI*2;a+=0.08){
 
-// 水らしい微妙な歪み
+// 波紋干渉
+let interference=0;
+
+for(let other of ripples){
+
+let dx=r.x-other.x;
+let dy=r.y-other.y;
+
+let dist=Math.sqrt(dx*dx+dy*dy);
+
+interference+=Math.sin(dist*0.05-time*0.04)*0.3;
+
+}
+
+// 水の歪み
 let distortion=
 Math.sin(a*3+r.radius*0.02+r.phase)*0.6+
-Math.sin(a*7+r.radius*0.015)*0.25;
+Math.sin(a*7+r.radius*0.015)*0.25+
+interference;
 
-let x=r.x+Math.cos(a)*(radius+distortion);
-let y=r.y+Math.sin(a)*(radius+distortion);
+
+// 水面微振動
+let micro=
+Math.sin(time*0.02+a*4)*0.3;
+
+let x=r.x+Math.cos(a)*(radius+distortion+micro);
+let y=r.y+Math.sin(a)*(radius+distortion+micro);
 
 if(a===0){
 ctx.moveTo(x,y);
@@ -135,9 +152,13 @@ ctx.closePath();
 
 let alpha=r.alpha*(1-i*0.25);
 
+// 滲み
+ctx.shadowColor="rgba(0,120,255,0.4)";
+ctx.shadowBlur=12;
+
 ctx.strokeStyle=`rgba(0,120,255,${alpha})`;
 
-ctx.lineWidth=0.9;
+ctx.lineWidth=0.8;
 
 ctx.stroke();
 
@@ -145,18 +166,16 @@ ctx.stroke();
 
 }
 
-ctx.globalCompositeOperation="source-over";
-
-}
-
 
 // アニメーション
 function animate(){
 
+time++;
+
 ctx.clearRect(0,0,canvas.width,canvas.height);
 
-// 滲み
-ctx.filter="blur(1.4px)";
+// 全体ぼかし
+ctx.filter="blur(1.2px)";
 
 for(let i=ripples.length-1;i>=0;i--){
 
@@ -164,16 +183,12 @@ let r=ripples[i];
 
 drawRipple(r);
 
-// 波紋拡大
 r.radius+=r.speed;
 
-// 外側ほど減速
 r.speed*=0.985;
 
-// フェード
 r.alpha*=r.decay;
 
-// 最大サイズ到達
 if(r.radius>r.max || r.alpha<0.02){
 
 ripples.splice(i,1);
