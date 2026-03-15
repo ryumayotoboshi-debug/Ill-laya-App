@@ -2,22 +2,22 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Ill/Raya touch</title>
+<title>Ill/Raya touch - Water Ripple</title>
 
 <style>
-body{
+body {
   margin:0;
   background:#ffffff;
   overflow:hidden;
 }
 
-canvas{
+canvas {
   display:block;
 }
 
 @media (prefers-color-scheme: dark) {
   body {
-    background: #000000;
+    background:#000000;
   }
 }
 </style>
@@ -40,95 +40,81 @@ const isDarkMode = window.matchMedia("(prefers-color-scheme: dark)").matches;
 let ripples = [];
 let time = 0;
 
-// 波紋生成時に個体ごとの速度、減衰、初期サイズをランダム化
-function createRipple(x, y){
+// 波紋生成時に個体ごとの速度・減衰・最大半径を設定
+function createRipple(x, y) {
   ripples.push({
     x: x,
     y: y,
-    r: Math.random()*5,           // 初期半径に小さなランダム
+    r: 0,
     a: 0.5,
-    speed: 2 + Math.random()*4,   // 基本速度のランダム性
-    decay: 0.985 + Math.random()*0.01,
-    sizeFactor: 0.8 + Math.random()*0.4 // 波紋サイズのランダム係数
+    speed: 2 + Math.random()*3,       // 広がる速度
+    decay: 0.985 + Math.random()*0.01, // 減衰率
+    maxR: 80 + Math.random()*80        // 波紋の最大サイズ
   });
 }
 
 // タッチ・クリックで波紋生成
-canvas.addEventListener("touchstart", e=>{
-  let t = e.touches[0];
+canvas.addEventListener("touchstart", e => {
+  const t = e.touches[0];
   createRipple(t.clientX, t.clientY);
 });
-canvas.addEventListener("mousedown", e=>{
+
+canvas.addEventListener("mousedown", e => {
   createRipple(e.clientX, e.clientY);
 });
 
-// 自動的にランダムに波紋を発生させる
-function ilRipple(){
-  let x = Math.random() * canvas.width;
-  let y = Math.random() * canvas.height;
+// 自動ランダム波紋
+function ilRipple() {
+  const x = Math.random() * canvas.width;
+  const y = Math.random() * canvas.height;
   createRipple(x, y);
-  let next = 40000 + Math.random()*80000;
+  const next = 40000 + Math.random() * 80000;
   setTimeout(ilRipple, next);
 }
 setTimeout(ilRipple, 30000);
 
 // 波紋描画
-function drawRipple(r){
-  ctx.globalCompositeOperation = "lighter"; // 干渉
+function drawRipple(r) {
+  // 波紋同士の干渉を表現
+  ctx.globalCompositeOperation = "lighter";
 
-  for(let i=0; i<5; i++){
-    let delay = i*10 * r.sizeFactor; // サイズに応じて遅延も変化
-    let radius = r.r - delay;
-    if(radius > 0){
-      ctx.beginPath();
-      for(let a=0; a<Math.PI*2; a+=0.15){
-        let distortion = Math.sin(a*3 + r.r*0.03)*0.25 + Math.sin(a*7 + r.r*0.05)*0.1;
-        let x = r.x + Math.cos(a)*(radius + distortion);
-        let y = r.y + Math.sin(a)*(radius + distortion);
-        if(a===0){
-          ctx.moveTo(x,y);
-        } else {
-          ctx.lineTo(x,y);
-        }
-      }
-      ctx.closePath();
+  // 放射状グラデーションで描く
+  const gradient = ctx.createRadialGradient(r.x, r.y, 0, r.x, r.y, r.r);
+  const baseColor = isDarkMode ? '255,255,255' : '0,120,255';
+  gradient.addColorStop(0, `rgba(${baseColor},${r.a})`);
+  gradient.addColorStop(1, `rgba(${baseColor},0)`);
 
-      let alpha = r.a*(1 - i*0.2);
-
-      // ダークモードは白、ライトモードは青
-      ctx.strokeStyle = isDarkMode
-        ? `rgba(255,255,255,${alpha*1.5})`
-        : `rgba(0,120,255,${alpha*1.2})`;
-
-      ctx.lineWidth = 0.7;
-      ctx.stroke();
-    }
-  }
+  ctx.fillStyle = gradient;
+  ctx.beginPath();
+  ctx.arc(r.x, r.y, r.r, 0, Math.PI*2);
+  ctx.fill();
 
   ctx.globalCompositeOperation = "source-over";
 }
 
 // アニメーション
-function animate(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+function animate() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  ctx.filter = "blur(3px)"; // 線をさらにぼやけさせる
+  // 波紋をぼかして柔らかく
+  ctx.filter = "blur(4px)";
+
   time += 0.02;
-  let offset = Math.sin(time)*0.3;
-
+  const offset = Math.sin(time)*0.3;
   ctx.save();
-  ctx.translate(offset,0);
+  ctx.translate(offset, 0);
 
-  for(let i=ripples.length-1; i>=0; i--){
-    let r = ripples[i];
+  for(let i = ripples.length - 1; i >= 0; i--) {
+    const r = ripples[i];
     drawRipple(r);
 
-    // 速度を個体ごとに変則的かつランダムに
-    r.r += r.speed * r.sizeFactor + r.a*4 + Math.random()*1.2;
-    r.a *= r.decay - Math.random()*0.003;
+    // 個体ごとに変則的に広がる
+    r.r += r.speed + Math.random()*1.5;
+    r.a *= r.decay;
 
-    if(r.a < 0.01){
-      ripples.splice(i,1);
+    // 最大半径を超えたら消す
+    if(r.r > r.maxR || r.a < 0.01){
+      ripples.splice(i, 1);
     }
   }
 
