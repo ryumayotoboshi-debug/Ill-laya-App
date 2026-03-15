@@ -70,8 +70,7 @@ ripples.push({
 x:x,
 y:y,
 radius:0,
-speed:5+Math.random()*1.2,
-phase:Math.random()*6
+speed:5+Math.random()*1.2
 })
 
 }
@@ -118,7 +117,7 @@ r.radius += r.speed
 
 }
 
-ripples = ripples.filter(r=>r.radius < 700)
+ripples = ripples.filter(r=>r.radius < 900)
 
 }
 
@@ -126,8 +125,7 @@ ripples = ripples.filter(r=>r.radius < 700)
 
 /* 描画 */
 
-const WAVELENGTH = 10
-const RINGS = 2
+const RINGS = 3
 
 function render(){
 
@@ -147,10 +145,10 @@ Math.cos(t*0.6)*0.4
 
 for(let r of ripples){
 
-let alpha = 1/(1+r.radius*0.012)
+let alpha = 1/(1+r.radius*0.008)
 
 let color = darkMode
-? `rgba(120,220,255,${alpha})`
+? `rgba(150,235,255,${alpha})`
 : `rgba(0,0,0,${alpha})`
 
 ctx.strokeStyle = color
@@ -159,13 +157,19 @@ ctx.shadowColor = color
 
 let thickness = 1.2 + r.radius*0.01
 
+
+/* 半径依存リング間隔 */
+
+let spacing = 8 + r.radius*0.02
+
+
 for(let i=0;i<RINGS;i++){
 
-let rad = r.radius - i*WAVELENGTH + r.phase
+let rad = r.radius - i*spacing
 
 if(rad<=0) continue
 
-ctx.lineWidth = thickness*(1-i*0.3)
+ctx.lineWidth = thickness*(1-i*0.25)
 
 ctx.beginPath()
 ctx.arc(r.x,r.y,rad,0,Math.PI*2)
