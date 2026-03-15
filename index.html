@@ -2,33 +2,32 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Water Ripple Simulation</title>
+<title>Ill/Raya touch - Ripple Line</title>
 
 <style>
 body{
-margin:0;
-overflow:hidden;
-background:#ffffff;
+  margin:0;
+  background:#ffffff;
+  overflow:hidden;
 }
 
 canvas{
-display:block;
+  display:block;
 }
 
 @media (prefers-color-scheme: dark){
-body{
-background:#000000;
-}
+  body{
+    background:#000000;
+  }
 }
 </style>
-
 </head>
+
 <body>
 
 <canvas id="water"></canvas>
 
 <script>
-
 const canvas = document.getElementById("water");
 const ctx = canvas.getContext("2d");
 
@@ -37,145 +36,137 @@ canvas.height = window.innerHeight;
 
 const isDarkMode = window.matchMedia("(prefers-color-scheme: dark)").matches;
 
-// グリッド解像度
-const size = 6;
+let ripples = [];
+let time = 0;
 
-const cols = Math.floor(canvas.width / size);
-const rows = Math.floor(canvas.height / size);
+function createRipple(x,y){
+  ripples.push({
+    x:x,
+    y:y,
+    r:0,
+    a:0.45,
 
-// 水面データ
-let current = [];
-let previous = [];
+    // 初速を強めに
+    speed:3 + Math.random()*3,
 
-// 初期化
-for(let i=0;i<cols;i++){
-current[i] = [];
-previous[i] = [];
-for(let j=0;j<rows;j++){
-current[i][j] = 0;
-previous[i][j] = 0;
+    // 徐々に速度を落とす
+    friction:0.985 + Math.random()*0.005,
+
+    // 透明度減衰
+    decay:0.992 + Math.random()*0.004
+  });
 }
-}
-
-// 減衰係数（水の粘性）
-const damping = 0.995;
-
-
-// 波紋を発生させる
-function disturb(x,y){
-
-let gx = Math.floor(x/size);
-let gy = Math.floor(y/size);
-
-if(gx>1 && gx<cols-1 && gy>1 && gy<rows-1){
-previous[gx][gy] = 200;
-}
-
-}
-
-
-// タッチ・クリック
-canvas.addEventListener("mousedown",e=>{
-disturb(e.clientX,e.clientY);
-});
 
 canvas.addEventListener("touchstart",e=>{
-let t = e.touches[0];
-disturb(t.clientX,t.clientY);
+  let t = e.touches[0];
+  createRipple(t.clientX,t.clientY);
 });
 
+canvas.addEventListener("mousedown",e=>{
+  createRipple(e.clientX,e.clientY);
+});
 
-// 自動波紋
-function randomRipple(){
+function ilRipple(){
+  let x = Math.random()*canvas.width;
+  let y = Math.random()*canvas.height;
 
-let x = Math.random()*canvas.width;
-let y = Math.random()*canvas.height;
+  createRipple(x,y);
 
-disturb(x,y);
-
-let next = 40000 + Math.random()*80000;
-
-setTimeout(randomRipple,next);
-
+  let next = 40000 + Math.random()*80000;
+  setTimeout(ilRipple,next);
 }
 
-setTimeout(randomRipple,30000);
+setTimeout(ilRipple,30000);
 
+function drawRipple(r){
 
-// シミュレーション更新
-function update(){
+  ctx.globalCompositeOperation="lighter";
 
-for(let x=1;x<cols-1;x++){
+  for(let i=0;i<5;i++){
 
-for(let y=1;y<rows-1;y++){
+    let delay=i*9;
+    let radius=r.r-delay;
 
-current[x][y] =
-(
-previous[x-1][y] +
-previous[x+1][y] +
-previous[x][y-1] +
-previous[x][y+1]
-) / 2 - current[x][y];
+    if(radius>0){
 
-current[x][y] *= damping;
+      ctx.beginPath();
 
+      for(let a=0;a<Math.PI*2;a+=0.15){
+
+        let distortion =
+        Math.sin(a*3 + r.r*0.03)*0.25 +
+        Math.sin(a*7 + r.r*0.05)*0.1;
+
+        let x=r.x + Math.cos(a)*(radius+distortion);
+        let y=r.y + Math.sin(a)*(radius+distortion);
+
+        if(a===0){
+          ctx.moveTo(x,y);
+        }else{
+          ctx.lineTo(x,y);
+        }
+
+      }
+
+      ctx.closePath();
+
+      let alpha=r.a*(1-i*0.22);
+
+      let color=isDarkMode
+      ? `rgba(255,255,255,${alpha})`
+      : `rgba(0,120,255,${alpha})`;
+
+      ctx.strokeStyle=color;
+
+      ctx.lineWidth=0.55;
+
+      ctx.stroke();
+    }
+  }
+
+  ctx.globalCompositeOperation="source-over";
 }
 
-}
-
-// swap
-let temp = previous;
-previous = current;
-current = temp;
-
-}
-
-
-// 描画
-function draw(){
-
-ctx.clearRect(0,0,canvas.width,canvas.height);
-
-for(let x=0;x<cols;x++){
-
-for(let y=0;y<rows;y++){
-
-let h = previous[x][y];
-
-if(Math.abs(h) > 1){
-
-let alpha = Math.min(Math.abs(h)/120,0.35);
-
-let color = isDarkMode
-? `rgba(255,255,255,${alpha})`
-: `rgba(0,120,255,${alpha})`;
-
-ctx.fillStyle = color;
-
-ctx.fillRect(
-x*size,
-y*size,
-size,
-size
-);
-
-}
-
-}
-
-}
-
-}
-
-
-// アニメーション
 function animate(){
 
-update();
+  ctx.clearRect(0,0,canvas.width,canvas.height);
 
-draw();
+  // 滲みを強める
+  ctx.filter="blur(1.8px)";
 
-requestAnimationFrame(animate);
+  time+=0.02;
+
+  let offset=Math.sin(time)*0.3;
+
+  ctx.save();
+  ctx.translate(offset,0);
+
+  for(let i=ripples.length-1;i>=0;i--){
+
+    let r=ripples[i];
+
+    drawRipple(r);
+
+    // 非線形の広がり
+    r.r+=r.speed;
+
+    // 徐々に減速
+    r.speed*=r.friction;
+
+    // 透明度減衰
+    r.a*=r.decay;
+
+    if(r.a<0.01){
+      ripples.splice(i,1);
+    }
+
+  }
+
+  ctx.restore();
+
+  ctx.filter="none";
+
+  requestAnimationFrame(animate);
 
 }
 
