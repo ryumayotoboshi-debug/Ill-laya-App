@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>Gravity Watercolor</title>
 
 <style>
@@ -10,7 +11,20 @@
 body{
 margin:0;
 overflow:hidden;
-background:#fafafa;
+background:#eae7df;
+}
+
+/* 紙テクスチャ */
+body::before{
+content:"";
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background-image:url("https://www.transparenttextures.com/patterns/paper-fibers.png");
+opacity:0.35;
+pointer-events:none;
 }
 
 canvas{
@@ -20,7 +34,6 @@ display:block;
 #permission{
 position:fixed;
 top:50%;
-left:50%;
 left:50%;
 transform:translate(-50%,-50%);
 padding:14px 20px;
@@ -51,18 +64,25 @@ let drops = []
 let gravityX = 0
 let gravityY = 0
 
+
 function createDrop(x,y){
 
 drops.push({
+
 x:x,
 y:y,
+
 vx:0,
 vy:0,
+
 size:25 + Math.random()*15,
+
 alpha:1
+
 })
 
 }
+
 
 // タップでインク
 canvas.addEventListener("touchstart",(e)=>{
@@ -71,6 +91,8 @@ let t = e.touches[0]
 createDrop(t.clientX,t.clientY)
 
 })
+
+
 
 // 傾き許可
 function enableOrientation(){
@@ -95,13 +117,14 @@ window.addEventListener("deviceorientation",handleOrientation)
 
 }
 
+
 function handleOrientation(event){
 
-// とても弱い重力
 gravityX = event.gamma * 0.002
 gravityY = event.beta * 0.002
 
 }
+
 
 document.getElementById("permission").onclick = ()=>{
 
@@ -110,12 +133,15 @@ document.getElementById("permission").style.display="none"
 
 }
 
+
+
 // 描画ループ
 function draw(){
 
-// 軌跡を残すためのフェード
-ctx.fillStyle="rgba(250,250,250,0.04)"
+// 軌跡フェード
+ctx.fillStyle="rgba(234,231,223,0.05)"
 ctx.fillRect(0,0,canvas.width,canvas.height)
+
 
 drops.forEach(d=>{
 
@@ -123,18 +149,25 @@ drops.forEach(d=>{
 d.vx += gravityX
 d.vy += gravityY
 
+
 // 移動
 d.x += d.vx
 d.y += d.vy
 
-// 強い抵抗（かなりゆっくり）
+
+// 抵抗
 d.vx *= 0.96
 d.vy *= 0.96
 
-// 徐々に薄く
+
+// 水彩拡散
+d.size += 0.02
+
+
+// 薄くなる
 d.alpha -= 0.001
 
-// 水彩描画
+
 let gradient = ctx.createRadialGradient(
 d.x,d.y,0,
 d.x,d.y,d.size
@@ -151,7 +184,7 @@ ctx.fill()
 
 })
 
-// 消える
+
 drops = drops.filter(d=>d.alpha>0)
 
 requestAnimationFrame(draw)
