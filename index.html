@@ -2,197 +2,122 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Gravity Watercolor</title>
-
+<title>Il/Raya touch</title>
 <style>
-
 body{
-margin:0;
-overflow:hidden;
-background:#eae7df;
-}
-
-/* 紙テクスチャ */
-body::before{
-content:"";
-position:fixed;
-top:0;
-left:0;
-width:100%;
-height:100%;
-background-image:url("https://www.transparenttextures.com/patterns/paper-fibers.png");
-opacity:0.35;
-pointer-events:none;
+  margin:0;
+  overflow:hidden;
+  background:#ffffff;
+  transition:background 0.3s;
 }
 
 canvas{
-display:block;
+  display:block;
 }
-
-#permission{
-position:fixed;
-top:50%;
-left:50%;
-transform:translate(-50%,-50%);
-padding:14px 20px;
-background:#222;
-color:white;
-border-radius:10px;
-font-size:14px;
-}
-
 </style>
 </head>
-
 <body>
 
-<canvas id="canvas"></canvas>
-<div id="permission">タップして傾きセンサーを有効化</div>
+<canvas id="water"></canvas>
 
 <script>
+const canvas = document.getElementById("water");
+const ctx = canvas.getContext("2d");
 
-const canvas = document.getElementById("canvas")
-const ctx = canvas.getContext("2d")
+let width, height;
 
-canvas.width = window.innerWidth
-canvas.height = window.innerHeight
+function resize(){
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = window.innerHeight;
+}
+window.addEventListener("resize", resize);
+resize();
 
-let drops = []
+// ダークモード判定
+let darkMode = window.matchMedia("(prefers-color-scheme: dark)").matches;
+function updateBackground(){
+    document.body.style.background = darkMode ? "#000000" : "#ffffff";
+}
+updateBackground();
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", e => {
+    darkMode = e.matches;
+    updateBackground();
+});
 
-let gravityX = 0
-let gravityY = 0
+// 波紋配列
+let ripples = [];
 
-
-function createDrop(x,y){
-
-drops.push({
-
-x:x,
-y:y,
-
-vx:0,
-vy:0,
-
-size:25 + Math.random()*15,
-
-alpha:1
-
-})
-
+// 波紋生成
+function createRipple(x, y){
+    ripples.push({
+        x: x,
+        y: y,
+        r: 0,
+        a: 0.5,
+        speed: 5 + Math.random()*5,      // 広がる速度をランダム化
+        decay: 0.970 + Math.random()*0.01,
+        maxR: 500 + Math.random()*120      // ランダムな最大半径
+    });
 }
 
+// pointerdown でタップ／クリックに対応
+canvas.addEventListener("pointerdown", e => {
+    createRipple(e.clientX, e.clientY);
+});
 
-// タップでインク
-canvas.addEventListener("touchstart",(e)=>{
+// 自動生成（イルの反応） 21秒ごと
+function autoRipple(){
+    createRipple(width/2, height/2); // 画面中央
+    setTimeout(autoRipple, 21000);
+}
+setTimeout(autoRipple, 21000);
 
-let t = e.touches[0]
-createDrop(t.clientX,t.clientY)
+// 波紋描画
+function drawRipple(r){
+    ctx.globalCompositeOperation = "lighter";
+    ctx.beginPath();
+    const segments = 100;
+    for(let i=0; i<=segments; i++){
+        const angle = i / segments * Math.PI * 2;
+        const distortion = Math.sin(angle*3 + r.r*0.03)*0.3;
+        const x = r.x + Math.cos(angle)*(r.r + distortion);
+        const y = r.y + Math.sin(angle)*(r.r + distortion);
+        if(i===0) ctx.moveTo(x,y);
+        else ctx.lineTo(x,y);
+    }
+    ctx.closePath();
 
-})
+    // 透明度を2.5倍にして線を濃く
+    const alpha = r.a * 2.5;
 
+    const color = darkMode
+        ? `rgba(255,255,255,${alpha})`
+        : `rgba(0,0,0,${alpha})`; // ライトモードは黒
 
-
-// 傾き許可
-function enableOrientation(){
-
-if (typeof DeviceOrientationEvent.requestPermission === "function"){
-
-DeviceOrientationEvent.requestPermission().then(permissionState => {
-
-if(permissionState === "granted"){
-
-window.addEventListener("deviceorientation",handleOrientation)
-
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1;
+    ctx.shadowBlur = 4; // 滲み
+    ctx.shadowColor = color;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.globalCompositeOperation = "source-over";
 }
 
-})
-
-}else{
-
-window.addEventListener("deviceorientation",handleOrientation)
-
+// アニメーション
+function animate(){
+    ctx.clearRect(0,0,width,height);
+    for(let i=ripples.length-1; i>=0; i--){
+        let r = ripples[i];
+        drawRipple(r);
+        // 非線形の広がり（初速早く、後半ゆっくり）
+        r.r += r.speed * (1 - r.r/r.maxR);
+        r.a *= r.decay;
+        if(r.a < 0.01 || r.r > r.maxR) ripples.splice(i,1);
+    }
+    requestAnimationFrame(animate);
 }
 
-}
-
-
-function handleOrientation(event){
-
-gravityX = event.gamma * 0.002
-gravityY = event.beta * 0.002
-
-}
-
-
-document.getElementById("permission").onclick = ()=>{
-
-enableOrientation()
-document.getElementById("permission").style.display="none"
-
-}
-
-
-
-// 描画ループ
-function draw(){
-
-// 軌跡フェード
-ctx.fillStyle="rgba(234,231,223,0.05)"
-ctx.fillRect(0,0,canvas.width,canvas.height)
-
-
-drops.forEach(d=>{
-
-// 重力
-d.vx += gravityX
-d.vy += gravityY
-
-
-// 移動
-d.x += d.vx
-d.y += d.vy
-
-
-// 抵抗
-d.vx *= 0.96
-d.vy *= 0.96
-
-
-// 水彩拡散
-d.size += 0.02
-
-
-// 薄くなる
-d.alpha -= 0.001
-
-
-let gradient = ctx.createRadialGradient(
-d.x,d.y,0,
-d.x,d.y,d.size
-)
-
-gradient.addColorStop(0,`rgba(30,30,30,${d.alpha})`)
-gradient.addColorStop(1,`rgba(30,30,30,0)`)
-
-ctx.fillStyle = gradient
-
-ctx.beginPath()
-ctx.arc(d.x,d.y,d.size,0,Math.PI*2)
-ctx.fill()
-
-})
-
-
-drops = drops.filter(d=>d.alpha>0)
-
-requestAnimationFrame(draw)
-
-}
-
-draw()
-
+animate();
 </script>
 
 </body>
